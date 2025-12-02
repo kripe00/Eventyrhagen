@@ -9,7 +9,7 @@ export default function ParentScreen() {
   return (
     <SafeAreaView style={styles.container}>
       
-      {/* HEADER MED LOGG UT KNAPP */}
+      
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Min Side</Text>
         
@@ -19,7 +19,7 @@ export default function ParentScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* MIDLERTIDIG INNHOLD */}
+     
       <View style={styles.content}>
         <Ionicons name="construct-outline" size={80} color="#cbd5e1" />
         <Text style={styles.infoText}>Foreldre-visning kommer snart!</Text>
@@ -33,7 +33,7 @@ export default function ParentScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f9fafb' },
   
-  // Header stiler
+
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
   logoutBtn: { flexDirection: 'row', alignItems: 'center' },
   logoutText: { marginRight: 8, color: '#374151', fontSize: 14, fontWeight: '500' },
 
-  // Innhold stiler
+  
   content: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   infoText: { fontSize: 18, fontWeight: 'bold', color: '#64748b', marginTop: 20 },
   subText: { textAlign: 'center', color: '#94a3b8', marginTop: 10 }

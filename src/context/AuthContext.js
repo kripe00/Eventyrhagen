@@ -1,7 +1,7 @@
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 import { auth, db } from '../config/firebaseconfig';
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 
 const AuthContext = createContext();
 
@@ -9,7 +9,8 @@ export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [role, setRole] = useState(null); // 'admin', 'employee', eller 'parent'
+  const [role, setRole] = useState(null);
+  const [userData, setUserData] = useState(null); 
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,13 +18,15 @@ export const AuthProvider = ({ children }) => {
       if (currentUser) {
         setUser(currentUser);
         try {
-          // Sjekk hvilken rolle brukeren har i databasen
+          // Hent rolle og avdeling fra 'users' samlingen
           const userDoc = await getDoc(doc(db, "users", currentUser.uid));
           if (userDoc.exists()) {
-            setRole(userDoc.data().role);
+            const data = userDoc.data();
+            setRole(data.role);
+            setUserData(data); 
           } else {
-            // Standard fallback hvis ingen rolle er satt
             setRole('parent'); 
+            setUserData(null);
           }
         } catch (error) {
           console.error("Kunne ikke hente rolle:", error);
@@ -32,6 +35,7 @@ export const AuthProvider = ({ children }) => {
       } else {
         setUser(null);
         setRole(null);
+        setUserData(null);
       }
       setLoading(false);
     });
@@ -48,7 +52,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, role, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, role, userData, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
