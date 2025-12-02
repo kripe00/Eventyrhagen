@@ -3,33 +3,43 @@ import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, updateD
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
-  KeyboardAvoidingView, Platform,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text, TextInput, TouchableOpacity,
   View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { db } from '../config/firebaseconfig';
 import { useAuth } from '../context/Authcontext';
+
 
 export default function AdminScreen() {
   const { logout } = useAuth();
   
-  // State for visning
+  // state for hvilken fane som er aktiv
   const [activeTab, setActiveTab] = useState('child'); 
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [editId, setEditId] = useState(null); 
 
-  // Data lister
+  // state for custom alert
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({
+    title: '',
+    message: '',
+    buttons: [] 
+  });
+
+  
   const [childrenList, setChildrenList] = useState([]);
   const [employeeList, setEmployeeList] = useState([]);
   const [departmentList, setDepartmentList] = useState([]);
 
-  // Skjema-felter
+  
   const [childName, setChildName] = useState('');
   const [childDept, setChildDept] = useState('');
   const [emailInput, setEmailInput] = useState('');
@@ -42,7 +52,7 @@ export default function AdminScreen() {
 
   const [deptName, setDeptName] = useState('');
 
-  // hent data
+  
   useEffect(() => {
     const unsubChild = onSnapshot(query(collection(db, "children"), orderBy("name")), snap => 
       setChildrenList(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
@@ -54,7 +64,17 @@ export default function AdminScreen() {
     return () => { unsubChild(); unsubEmp(); unsubDept(); };
   }, []);
 
-  // nullstill skjema
+  
+  const showAlert = (title, message, buttons = []) => {
+    
+    if (buttons.length === 0) {
+      buttons = [{ text: "OK", onPress: () => setAlertVisible(false) }];
+    }
+    setAlertConfig({ title, message, buttons });
+    setAlertVisible(true);
+  };
+
+  
   const resetForm = () => {
     setChildName(''); setChildDept(''); setGuardianEmails([]); setEmailInput('');
     setEmpName(''); setEmpDept(''); setEmpPhone(''); setEmpEmail('');
@@ -63,64 +83,70 @@ export default function AdminScreen() {
     setShowForm(false);
   };
 
-  // klargjør for redigering
+  
   const handleEdit = (item, type) => {
     setEditId(item.id);
     setActiveTab(type);
-    
     if (type === 'child') {
-      setChildName(item.name);
-      setChildDept(item.avdeling);
-      setGuardianEmails(item.guardianEmails || []);
+      setChildName(item.name); setChildDept(item.avdeling); setGuardianEmails(item.guardianEmails || []);
     } else if (type === 'employee') {
-      setEmpName(item.name);
-      setEmpDept(item.department);
-      setEmpEmail(item.email);
-      setEmpPhone(item.phone);
+      setEmpName(item.name); setEmpDept(item.department); setEmpEmail(item.email); setEmpPhone(item.phone);
     } else if (type === 'department') {
       setDeptName(item.name);
     }
     setShowForm(true);
   };
 
-  //slett dokument
+
   const handleDelete = (collectionName, id, name) => {
-    Alert.alert("Slett", `Slette ${name}?`, [
-        { text: "Avbryt", style: "cancel" },
-        { text: "Slett", style: "destructive", onPress: async () => {
-            try { await deleteDoc(doc(db, collectionName, id)); } catch(e) { Alert.alert("Feil", "Kunne ikke slette"); }
-        }}
-    ]);
+    showAlert(
+      "Slett oppføring",
+      `Er du sikker på at du vil slette ${name}?`,
+      [
+        { text: "Avbryt", style: "cancel", onPress: () => setAlertVisible(false) },
+        { 
+          text: "Slett", 
+          style: "destructive", 
+          onPress: async () => {
+            try { 
+                await deleteDoc(doc(db, collectionName, id)); 
+                setAlertVisible(false);
+                
+            } catch(e) { 
+                setAlertVisible(false);
+                showAlert("Feil", "Kunne ikke slette: " + e.message);
+            }
+          }
+        }
+      ]
+    );
   };
 
-  // Fjern fra avdeling
+  // fjern person fra avdeling
   const removeFromDept = async (type, id, name) => {
-    Alert.alert(
+    showAlert(
         "Fjern fra avdeling", 
-        `Vil du fjerne ${name} fra ${deptName}? (Personen blir ikke slettet)`,
+        `Vil du fjerne ${name} fra ${deptName}? (Personen blir ikke slettet fra systemet)`,
         [
-            { text: "Avbryt", style: "cancel" },
+            { text: "Avbryt", style: "cancel", onPress: () => setAlertVisible(false) },
             { text: "Fjern", style: "destructive", onPress: async () => {
                 try {
                     const collectionName = type === 'child' ? 'children' : 'employees';
                     const fieldName = type === 'child' ? 'avdeling' : 'department';
-                    
-                    // Oppdaterer dokumentet ved å sette avdelingsfeltet til tomt
-                    await updateDoc(doc(db, collectionName, id), {
-                        [fieldName]: "" 
-                    });
+                    await updateDoc(doc(db, collectionName, id), { [fieldName]: "" });
+                    setAlertVisible(false);
                 } catch(e) {
-                    console.error(e);
-                    Alert.alert("Feil", "Kunne ikke fjerne fra avdeling.");
+                    setAlertVisible(false);
+                    showAlert("Feil", "Kunne ikke fjerne: " + e.message);
                 }
             }}
         ]
     );
   };
 
-  // lagre / oppdater barn
+  //lagre barn
   const handleSaveChild = async () => {
-    if (!childName || guardianEmails.length === 0) return Alert.alert('Mangler info', 'Navn og foresatt må fylles ut.');
+    if (!childName || guardianEmails.length === 0) return showAlert('Mangler info', 'Navn og foresatt må fylles ut.');
     setLoading(true);
     try {
       const data = {
@@ -130,60 +156,88 @@ export default function AdminScreen() {
       
       if (editId) {
         await updateDoc(doc(db, "children", editId), data);
-        Alert.alert('Oppdatert', `${childName} er endret!`);
+        showAlert('Oppdatert', `${childName} er endret!`, [{ text: "OK", onPress: () => { setAlertVisible(false); resetForm(); }}]);
       } else {
         await addDoc(collection(db, "children"), { ...data, status: 'home', isSick: false, checkInTime: null, createdAt: new Date() });
-        Alert.alert('Suksess', `${childName} lagret!`);
+        showAlert('Suksess', `${childName} lagret!`, [{ text: "OK", onPress: () => { setAlertVisible(false); resetForm(); }}]);
       }
-      resetForm();
-    } catch (e) { console.error(e); Alert.alert('Feil', 'Kunne ikke lagre.'); } finally { setLoading(false); }
+    } catch (e) { showAlert('Feil', 'Kunne ikke lagre.'); } finally { setLoading(false); }
   };
 
-  // lagre / oppdater ansatt
+  // lagre ansatt
   const handleSaveEmployee = async () => {
-    if (!empName || !empEmail) return Alert.alert('Mangler info', 'Navn og e-post må fylles ut.');
+    if (!empName || !empEmail) return showAlert('Mangler info', 'Navn og e-post må fylles ut.');
     setLoading(true);
     try {
       const data = {
         name: empName, department: empDept, email: empEmail.toLowerCase(), phone: empPhone,
         image: `https://api.dicebear.com/7.x/avataaars/png?seed=${empName}`
       };
-
       if (editId) {
         await updateDoc(doc(db, "employees", editId), data);
-        Alert.alert('Oppdatert', `${empName} er endret!`);
+        showAlert('Oppdatert', `${empName} er endret!`, [{ text: "OK", onPress: () => { setAlertVisible(false); resetForm(); }}]);
       } else {
         await addDoc(collection(db, "employees"), { ...data, createdAt: new Date() });
-        Alert.alert('Suksess', `${empName} lagret!`);
+        showAlert('Suksess', `${empName} lagret!`, [{ text: "OK", onPress: () => { setAlertVisible(false); resetForm(); }}]);
       }
-      resetForm();
-    } catch (e) { Alert.alert('Feil', 'Kunne ikke lagre.'); } finally { setLoading(false); }
+    } catch (e) { showAlert('Feil', 'Kunne ikke lagre.'); } finally { setLoading(false); }
   };
 
-  // lagre / oppdater avdeling
+  // lagre avdeling
   const handleSaveDepartment = async () => {
-    if (!deptName) return Alert.alert('Mangler info', 'Skriv navn.');
+    if (!deptName) return showAlert('Mangler info', 'Skriv navn.');
     setLoading(true);
     try {
       if (editId) {
         await updateDoc(doc(db, "departments", editId), { name: deptName });
-        Alert.alert('Oppdatert', `Avdeling endret til ${deptName}`);
+        showAlert('Oppdatert', `Avdeling endret til ${deptName}`, [{ text: "OK", onPress: () => { setAlertVisible(false); resetForm(); }}]);
       } else {
         await addDoc(collection(db, "departments"), { name: deptName, createdAt: new Date() });
-        Alert.alert('Suksess', `Avdeling ${deptName} opprettet!`);
+        showAlert('Suksess', `Avdeling ${deptName} opprettet!`, [{ text: "OK", onPress: () => { setAlertVisible(false); resetForm(); }}]);
       }
-      resetForm();
-    } catch (e) { Alert.alert('Feil', 'Kunne ikke lagre.'); } finally { setLoading(false); }
+    } catch (e) { showAlert('Feil', 'Kunne ikke lagre.'); } finally { setLoading(false); }
   };
 
+  // legg til foresatt e-post
   const addGuardianEmail = () => {
     const email = emailInput.trim().toLowerCase();
     if (email.includes('@') && !guardianEmails.includes(email)) {
       setGuardianEmails([...guardianEmails, email]); setEmailInput('');
-    } else { Alert.alert('Ugyldig', 'Sjekk e-post.'); }
+    } else { showAlert('Ugyldig', 'Sjekk e-post.'); }
   };
   const removeGuardianEmail = (e) => setGuardianEmails(guardianEmails.filter(x => x !== e));
 
+  // visning av custom alert
+  const renderCustomAlert = () => (
+    <Modal visible={alertVisible} transparent={true} animationType="fade" onRequestClose={() => setAlertVisible(false)}>
+        <View style={styles.modalOverlay}>
+            <View style={styles.modalBox}>
+                <Text style={styles.modalTitle}>{alertConfig.title}</Text>
+                <Text style={styles.modalMessage}>{alertConfig.message}</Text>
+                <View style={styles.modalButtons}>
+                    {alertConfig.buttons.map((btn, index) => (
+                        <TouchableOpacity 
+                            key={index} 
+                            style={[
+                                styles.modalBtn, 
+                                btn.style === 'cancel' ? styles.modalBtnCancel : 
+                                btn.style === 'destructive' ? styles.modalBtnDestructive : styles.modalBtnOk
+                            ]}
+                            onPress={btn.onPress}
+                        >
+                            <Text style={[
+                                styles.modalBtnText,
+                                btn.style === 'cancel' ? {color: '#374151'} : {color: 'white'}
+                            ]}>
+                                {btn.text}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            </View>
+        </View>
+    </Modal>
+  );
 
   
   const renderListItem = ({ item }) => (
@@ -221,47 +275,39 @@ export default function AdminScreen() {
                 </TouchableOpacity>
             </View>
         </View>
-
         <Text style={styles.sectionHeaderSmall}>Ansatte ({deptEmployees.length})</Text>
-        {deptEmployees.length > 0 ? deptEmployees.map(e => <Text key={e.id} style={styles.subItem}>• {e.name}</Text>) 
-        : <Text style={styles.emptySub}>Ingen ansatte</Text>}
-
+        {deptEmployees.length > 0 ? deptEmployees.map(e => <Text key={e.id} style={styles.subItem}>• {e.name}</Text>) : <Text style={styles.emptySub}>Ingen ansatte</Text>}
         <Text style={[styles.sectionHeaderSmall, {marginTop: 10}]}>Barn ({deptChildren.length})</Text>
-        {deptChildren.length > 0 ? deptChildren.map(c => <Text key={c.id} style={styles.subItem}>• {c.name}</Text>) 
-        : <Text style={styles.emptySub}>Ingen barn</Text>}
+        {deptChildren.length > 0 ? deptChildren.map(c => <Text key={c.id} style={styles.subItem}>• {c.name}</Text>) : <Text style={styles.emptySub}>Ingen barn</Text>}
       </View>
     );
   };
 
-  // Helper for å vise medlemmer i redigeringsmodus
   const renderMembersInEdit = () => {
-      // Finn de som tilhører avdelingen vi redigerer nå
-      const linkedChildren = childrenList.filter(c => c.avdeling?.toLowerCase() === deptName.toLowerCase());
-      const linkedEmployees = employeeList.filter(e => e.department?.toLowerCase() === deptName.toLowerCase());
-
-      return (
-          <View style={{marginTop: 20}}>
-              <Text style={[styles.label, {marginBottom: 10}]}>Ansatte i avdelingen:</Text>
-              {linkedEmployees.length > 0 ? linkedEmployees.map(e => (
-                  <View key={e.id} style={styles.linkedItemRow}>
-                      <Text style={styles.linkedItemText}>{e.name}</Text>
-                      <TouchableOpacity onPress={() => removeFromDept('employee', e.id, e.name)}>
-                          <Ionicons name="close-circle" size={20} color="#ef4444" />
-                      </TouchableOpacity>
-                  </View>
-              )) : <Text style={styles.emptySub}>Ingen</Text>}
-
-              <Text style={[styles.label, {marginTop: 20, marginBottom: 10}]}>Barn i avdelingen:</Text>
-              {linkedChildren.length > 0 ? linkedChildren.map(c => (
-                  <View key={c.id} style={styles.linkedItemRow}>
-                      <Text style={styles.linkedItemText}>{c.name}</Text>
-                      <TouchableOpacity onPress={() => removeFromDept('child', c.id, c.name)}>
-                          <Ionicons name="close-circle" size={20} color="#ef4444" />
-                      </TouchableOpacity>
-                  </View>
-              )) : <Text style={styles.emptySub}>Ingen</Text>}
-          </View>
-      );
+    const linkedChildren = childrenList.filter(c => c.avdeling?.toLowerCase() === deptName.toLowerCase());
+    const linkedEmployees = employeeList.filter(e => e.department?.toLowerCase() === deptName.toLowerCase());
+    return (
+        <View style={{marginTop: 20}}>
+            <Text style={[styles.label, {marginBottom: 10}]}>Ansatte i avdelingen:</Text>
+            {linkedEmployees.length > 0 ? linkedEmployees.map(e => (
+                <View key={e.id} style={styles.linkedItemRow}>
+                    <Text style={styles.linkedItemText}>{e.name}</Text>
+                    <TouchableOpacity onPress={() => removeFromDept('employee', e.id, e.name)}>
+                        <Ionicons name="close-circle" size={20} color="#ef4444" />
+                    </TouchableOpacity>
+                </View>
+            )) : <Text style={styles.emptySub}>Ingen</Text>}
+            <Text style={[styles.label, {marginTop: 20, marginBottom: 10}]}>Barn i avdelingen:</Text>
+            {linkedChildren.length > 0 ? linkedChildren.map(c => (
+                <View key={c.id} style={styles.linkedItemRow}>
+                    <Text style={styles.linkedItemText}>{c.name}</Text>
+                    <TouchableOpacity onPress={() => removeFromDept('child', c.id, c.name)}>
+                        <Ionicons name="close-circle" size={20} color="#ef4444" />
+                    </TouchableOpacity>
+                </View>
+            )) : <Text style={styles.emptySub}>Ingen</Text>}
+        </View>
+    );
   };
 
   return (
@@ -312,21 +358,16 @@ export default function AdminScreen() {
                  </Text>
               </View>
 
-              {/* skjema for avdeling */}
               {activeTab === 'department' && (
                 <>
                     <View style={styles.formGroup}><Text style={styles.label}>Navn</Text><TextInput style={styles.input} value={deptName} onChangeText={setDeptName} /></View>
-                    
-                    {/* viser medlemmer når vi redigerer */}
                     {editId && renderMembersInEdit()}
-
                     <TouchableOpacity style={[styles.saveBtn, {backgroundColor: '#7c3aed', marginTop: 30}]} onPress={handleSaveDepartment} disabled={loading}>
                         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>{editId ? 'OPPDATER' : 'OPPRETT'} AVDELING</Text>}
                     </TouchableOpacity>
                 </>
               )}
 
-              {/* skjema barn */}
               {activeTab === 'child' && (
                 <>
                   <View style={styles.formGroup}><Text style={styles.label}>Navn</Text><TextInput style={styles.input} value={childName} onChangeText={setChildName} /></View>
@@ -351,7 +392,6 @@ export default function AdminScreen() {
                 </>
               )}
 
-              {/* skjema for ansatt */}
               {activeTab === 'employee' && (
                 <>
                   <View style={styles.formGroup}><Text style={styles.label}>Navn</Text><TextInput style={styles.input} value={empName} onChangeText={setEmpName} /></View>
@@ -367,6 +407,10 @@ export default function AdminScreen() {
           </KeyboardAvoidingView>
         )}
       </View>
+      
+     
+      {renderCustomAlert()}
+
     </SafeAreaView>
   );
 }
@@ -409,8 +453,18 @@ const styles = StyleSheet.create({
   chipText: { color: '#1e40af', marginRight: 6, fontWeight: '500' },
   saveBtn: { backgroundColor: '#059669', padding: 18, borderRadius: 12, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.1, elevation: 2 },
   saveBtnText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
-  
-  
   linkedItemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f3f4f6', padding: 10, borderRadius: 8, marginBottom: 6 },
-  linkedItemText: { color: '#374151', fontWeight: '500' }
+  linkedItemText: { color: '#374151', fontWeight: '500' },
+
+  
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  modalBox: { width: '85%', backgroundColor: 'white', borderRadius: 16, padding: 20, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 10, elevation: 5 },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 10, color: '#111827', textAlign: 'center' },
+  modalMessage: { fontSize: 16, color: '#4b5563', marginBottom: 20, textAlign: 'center' },
+  modalButtons: { flexDirection: 'row', justifyContent: 'center' },
+  modalBtn: { paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8, marginHorizontal: 5, minWidth: 100, alignItems: 'center' },
+  modalBtnCancel: { backgroundColor: '#f3f4f6' },
+  modalBtnDestructive: { backgroundColor: '#dc2626' },
+  modalBtnOk: { backgroundColor: '#4f46e5' },
+  modalBtnText: { fontWeight: 'bold' }
 });
