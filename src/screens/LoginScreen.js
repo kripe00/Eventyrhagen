@@ -1,4 +1,5 @@
 import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { collection, doc, getDocs, query, setDoc, where } from 'firebase/firestore';
 import { useState } from 'react';
 import {
   ActivityIndicator, Alert,
@@ -11,9 +12,10 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { auth } from '../config/firebaseconfig';
-import { useAuth } from '../context/Authcontext';
 
+// egne imports
+import { auth, db } from '../config/firebaseconfig';
+import { useAuth } from '../context/Authcontext';
 
 const DismissKeyboard = ({ children }) => {
   if (Platform.OS === 'web') return children; 
@@ -33,7 +35,9 @@ export default function LoginScreen() {
   const { login } = useAuth();
 
   const handleAuthAction = async () => {
-    if(!email || !password) {
+    const cleanEmail = email.trim().toLowerCase();
+
+    if(!cleanEmail || !password) {
         const msg = "Vennligst fyll ut både e-post og passord";
         Platform.OS === 'web' ? alert(msg) : Alert.alert("Feil", msg);
         return;
@@ -42,14 +46,47 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       if (isLoginMode) {
-        await login(email, password);
+      
+        await login(cleanEmail, password);
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
-        const msg = "Bruker opprettet. Du blir nå logget inn.";
+       
+        const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+        const uid = userCredential.user.uid;
+
+       
+        const empQuery = query(collection(db, "employees"), where("email", "==", cleanEmail));
+        const empSnapshot = await getDocs(empQuery);
+
+        let role = 'parent';
+        let department = null;
+
+        if (!empSnapshot.empty) {
+            
+            const empData = empSnapshot.docs[0].data();
+            role = 'employee';
+            department = empData.department;
+            console.log("Gjenkjente ansatt:", cleanEmail, "Avdeling:", department);
+        } else {
+            
+            console.log("Registrerer som foresatt:", cleanEmail);
+        }
+
+      
+        await setDoc(doc(db, "users", uid), {
+            email: cleanEmail,
+            role: role,
+            department: department, 
+            createdAt: new Date()
+        });
+
+        const msg = role === 'employee' 
+            ? "Ansatt-konto gjenkjent! Du blir nå logget inn." 
+            : "Bruker opprettet. Du blir nå logget inn.";
+            
         Platform.OS === 'web' ? alert(msg) : Alert.alert("Velkommen!", msg);
       }
     } catch (error) {
-      console.error(error);
+      console.error("Auth Error:", error);
       let msg = "Noe gikk galt.";
       if (error.code === 'auth/email-already-in-use') msg = "Denne e-posten er allerede i bruk.";
       if (error.code === 'auth/invalid-email') msg = "Ugyldig e-postadresse.";
@@ -64,57 +101,27 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : "height"} 
-        style={styles.keyboardView}
-      >
-       
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.keyboardView}>
         <DismissKeyboard>
           <ScrollView contentContainerStyle={styles.scrollContent}>
-            
             <View style={styles.card}>
               <Text style={styles.title}>Eventyrhagen</Text>
-              <Text style={styles.subtitle}>
-                  {isLoginMode ? 'Logg inn for å fortsette' : 'Opprett ny brukerkonto'}
-              </Text>
+              <Text style={styles.subtitle}>{isLoginMode ? 'Logg inn for å fortsette' : 'Opprett ny brukerkonto'}</Text>
               
               <Text style={styles.label}>E-post</Text>
-              <TextInput 
-                placeholder="din@epost.no" 
-                style={styles.input} 
-                autoCapitalize="none"
-                keyboardType="email-address"
-                value={email}
-                onChangeText={setEmail}
-              />
+              <TextInput placeholder="din@epost.no" style={styles.input} autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} />
               
               <Text style={styles.label}>Passord</Text>
-              <TextInput 
-                placeholder="********" 
-                style={styles.input} 
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-              />
+              <TextInput placeholder="********" style={styles.input} secureTextEntry value={password} onChangeText={setPassword} />
 
               <TouchableOpacity style={styles.button} onPress={handleAuthAction} disabled={loading}>
-                {loading ? <ActivityIndicator color="#fff" /> : (
-                  <Text style={styles.btnText}>
-                      {isLoginMode ? 'Logg Inn' : 'Opprett Bruker'}
-                  </Text>
-                )}
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{isLoginMode ? 'Logg Inn' : 'Opprett Bruker'}</Text>}
               </TouchableOpacity>
 
-              <TouchableOpacity 
-                  style={styles.switchButton} 
-                  onPress={() => setIsLoginMode(!isLoginMode)}
-              >
-                  <Text style={styles.switchText}>
-                      {isLoginMode ? 'Har du ikke bruker? Registrer deg' : 'Har du allerede bruker? Logg inn'}
-                  </Text>
+              <TouchableOpacity style={styles.switchButton} onPress={() => setIsLoginMode(!isLoginMode)}>
+                  <Text style={styles.switchText}>{isLoginMode ? 'Har du ikke bruker? Registrer deg' : 'Har du allerede bruker? Logg inn'}</Text>
               </TouchableOpacity>
             </View>
-
           </ScrollView>
         </DismissKeyboard>
       </KeyboardAvoidingView>
