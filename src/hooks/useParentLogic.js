@@ -4,7 +4,7 @@ import { collection, query, where, onSnapshot, orderBy, addDoc, updateDoc, doc }
 import { db } from '../config/firebaseconfig';
 import { useAuth } from '../context/Authcontext';
 
-// Fargepalett (flyttet hit for å kunne brukes i logikk om nødvendig, men mest for konsistens)
+// Fargepalett
 const Colors = {
   light: {
     background: '#f3f4f6',
@@ -60,7 +60,7 @@ export const useParentLogic = () => {
     const colorScheme = useColorScheme();
     const theme = Colors[colorScheme] || Colors.light;
 
-    // Hent barn
+    // 1. Hent barn tilknyttet forelder
     useEffect(() => {
         if (!user?.email) return;
         const q = query(collection(db, "children"), where("guardianEmails", "array-contains", user.email));
@@ -71,14 +71,37 @@ export const useParentLogic = () => {
         return unsubscribe;
     }, [user]);
 
-    // Hent beskjeder
+    // 2. Hent beskjeder (FILTRERT PÅ AVDELING)
     useEffect(() => {
-        const q = query(collection(db, "messages"), orderBy("createdAt", "desc"));
+        // Vi må vente til vi vet hvilke avdelinger barna går i
+        if (children.length === 0) {
+            setMessages([]);
+            return;
+        }
+
+        // Finn alle unike avdelinger barna tilhører 
+        const myDepartments = [...new Set(children.map(child => child.avdeling).filter(d => d))];
+
+        if (myDepartments.length === 0) return;
+
+        // Spørring: Hent meldinger der 'author' (avdelingsnavn) er i listen over mine avdelinger
+       
+        const q = query(
+            collection(db, "messages"), 
+            where("author", "in", myDepartments), 
+            orderBy("createdAt", "desc")
+        );
+
         const unsubscribe = onSnapshot(q, (snapshot) => {
           setMessages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        }, (error) => {
+            console.log("Feil ved henting av meldinger (sjekk indeks):", error);
         });
+        
         return unsubscribe;
-    }, []);
+    }, [children]); // Kjøres på nytt når listen over barn endres
+
+    // --- Actions ---
 
     const handleSendMessage = async () => {
         if (!msgContent.trim()) return Alert.alert("Tom melding", "Du må skrive noe.");

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, updateDoc } from 'firebase/firestore';
+// La til 'setDoc' i importen her:
+import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, updateDoc, setDoc } from 'firebase/firestore';
 import { db } from '../config/firebaseconfig';
 
 export const useAdminLogic = () => {
@@ -109,16 +110,40 @@ export const useAdminLogic = () => {
     } catch (e) { showAlert('Feil', 'Kunne ikke lagre.'); } finally { setLoading(false); }
   };
 
+  // --- ENDRET FUNKSJON FOR Å FIKSE TILGANG ---
   const handleSaveEmployee = async () => {
     if (!empName || !empEmail) return showAlert('Mangler info', 'Navn og e-post må fylles ut.');
     setLoading(true);
     try {
-      const data = { name: empName, department: empDept, email: empEmail.toLowerCase(), phone: empPhone, image: `https://api.dicebear.com/7.x/avataaars/png?seed=${empName}` };
-      if (editId) await updateDoc(doc(db, "employees", editId), data);
-      else await addDoc(collection(db, "employees"), { ...data, createdAt: new Date() });
+      // 1. Vask e-posten for å bruke den som nøkkel (små bokstaver, ingen mellomrom)
+      const emailKey = empEmail.toLowerCase().trim();
+
+      const data = { 
+        name: empName, 
+        department: empDept, 
+        email: emailKey, // Lagre den vaskede e-posten
+        phone: empPhone, 
+        image: `https://api.dicebear.com/7.x/avataaars/png?seed=${empName}` 
+      };
+
+      if (editId) {
+        // Hvis vi redigerer, oppdater eksisterende dokument
+        await updateDoc(doc(db, "employees", editId), data);
+      } else {
+        // NYTT: Bruk setDoc med e-post som ID i stedet for addDoc
+        // Dette sikrer at reglene finner "employees/epost@adresse.no"
+        await setDoc(doc(db, "employees", emailKey), { ...data, createdAt: new Date() });
+      }
+      
       showAlert('Suksess', 'Lagret!', [{text:"OK", onPress:()=>{hideAlert(); resetForm()}}]);
-    } catch (e) { showAlert('Feil', 'Kunne ikke lagre.'); } finally { setLoading(false); }
+    } catch (e) { 
+      console.error(e);
+      showAlert('Feil', 'Kunne ikke lagre: ' + e.message); 
+    } finally { 
+      setLoading(false); 
+    }
   };
+  // ---------------------------------------------
 
   const handleSaveDepartment = async () => {
     if (!deptName) return showAlert('Mangler info', 'Skriv navn.');

@@ -83,12 +83,12 @@ For å få appen til å fungere må du installere avhengigheter og sette opp kob
     Kopier innholdet under, lim det inn i `.env`-filen, og erstatt verdiene med dine egne nøkler fra Firebase Console:
 
     ```env
-    FIREBASE_API_KEY=din_api_key_her
-    FIREBASE_AUTH_DOMAIN=eventyrhagen-xxxxx.firebaseapp.com
-    FIREBASE_PROJECT_ID=eventyrhagen-xxxxx
-    FIREBASE_STORAGE_BUCKET=eventyrhagen-xxxxx.firebasestorage.app
-    FIREBASE_MESSAGING_SENDER_ID=123456789
-    FIREBASE_APP_ID=1:123456789:web:abcdef123456
+    EXPO_PUBLIC_FIREBASE_API_KEY="din_api_key_her"
+    EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN="eventyrhagen-xxxxx.firebaseapp.com"
+    EXPO_PUBLIC_FIREBASE_PROJECT_ID=eventyrhagen-xxxxx
+    EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET="eventyrhagen-xxxxx.firebasestorage.app"
+    EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="123456789"
+    EXPO_PUBLIC_FIREBASE_APP_ID="1:123456789:web:abcdef123456"
     ```
 
     _(Nøklene finner du under: Project Settings -> General -> Your apps)_
