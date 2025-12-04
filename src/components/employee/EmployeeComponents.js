@@ -1,8 +1,10 @@
 import React from 'react';
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { AppInput } from '../ui/AppInput';   // <--- Gjenbruk
+import { AppButton } from '../ui/AppButton'; // <--- Gjenbruk
 
-// --- STYLES (Kopiert fra din original) ---
+// --- STYLES ---
 const styles = StyleSheet.create({
   header: { padding: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerTitle: { color: 'white', fontSize: 24, fontWeight: 'bold' },
@@ -22,8 +24,6 @@ const styles = StyleSheet.create({
   warningText: { color: '#991b1b', fontWeight: 'bold', marginLeft: 10 },
   actionBtn: { padding: 16, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' },
   actionText: { fontWeight: 'bold', fontSize: 18 },
-  label: { fontSize: 14, fontWeight: '600', marginBottom: 6 },
-  input: { padding: 14, borderRadius: 10, marginBottom: 16, fontSize: 16, borderWidth: 1 },
 
   inboxContainer: { flex: 1, paddingTop: 50 }, 
   inboxHeader: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 20, borderBottomWidth: 1, alignItems: 'center' },
@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
   inboxDate: { fontSize: 12, color: '#6b7280' }
 });
 
-// 1. DASHBOARD HEADER (Nøyaktig som din gamle header)
+// 1. DASHBOARD HEADER
 export const DashboardHeader = ({ theme, department, presentCount, totalCount, unreadCount, onOpenInbox, onOpenMsg, onLogout }) => (
   <View style={[styles.header, { backgroundColor: theme.headerBg }]}>
       <View>
@@ -103,30 +103,40 @@ export const CheckInModal = ({ theme, visible, child, onClose, onToggle }) => (
   </Modal>
 );
 
-// 4. NEW MESSAGE MODAL (Med Labels slik du hadde)
+// 4. NEW MESSAGE MODAL (OPPDATERT MED APPINPUT/APPBUTTON)
 export const MessageModal = ({ theme, visible, loading, title, setTitle, content, setContent, onClose, onPublish }) => (
   <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
           <View style={[styles.modalContent, {width: '90%', backgroundColor: theme.modalBg }]}>
               <Text style={[styles.modalTitle, { color: theme.text }]}>Ny fellesbeskjed</Text>
               
-              <Text style={[styles.label, { color: theme.text }]}>Tittel</Text>
-              <TextInput 
-                style={[styles.input, { backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.borderColor }]} 
-                value={title} onChangeText={setTitle} placeholderTextColor={theme.subText}
+              <AppInput 
+                label="Tittel" 
+                value={title} 
+                onChangeText={setTitle} 
               />
               
-              <Text style={[styles.label, { color: theme.text }]}>Innhold</Text>
-              <TextInput 
-                style={[styles.input, {height: 120, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.borderColor}]} 
-                value={content} onChangeText={setContent} multiline textAlignVertical="top" placeholderTextColor={theme.subText}
+              <AppInput 
+                label="Innhold" 
+                value={content} 
+                onChangeText={setContent} 
+                multiline 
+                placeholder="Skriv melding her..."
               />
               
-              <View style={{flexDirection:'row', justifyContent:'space-between', marginTop: 10}}>
-                  <TouchableOpacity onPress={onClose} style={{padding:10}}><Text style={{color: theme.subText}}>Avbryt</Text></TouchableOpacity>
-                  <TouchableOpacity style={[styles.actionBtn, {backgroundColor: '#4338ca', paddingHorizontal: 20}]} onPress={onPublish} disabled={loading}>
-                      {loading ? <ActivityIndicator color="#fff" /> : <Text style={{color: 'white', fontWeight:'bold'}}>Publiser</Text>}
+              <View style={{flexDirection:'row', justifyContent:'space-between', alignItems: 'center', marginTop: 10}}>
+                  <TouchableOpacity onPress={onClose} style={{padding:10, marginRight: 10}}>
+                    <Text style={{color: theme.subText}}>Avbryt</Text>
                   </TouchableOpacity>
+                  
+                  <View style={{flex: 1}}>
+                    <AppButton 
+                        title="Publiser" 
+                        onPress={onPublish} 
+                        loading={loading}
+                        style={{marginTop: 0}} // Fjerner default margin for å passe i raden
+                    />
+                  </View>
               </View>
           </View>
       </KeyboardAvoidingView>

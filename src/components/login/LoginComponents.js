@@ -1,8 +1,10 @@
 import React from 'react';
 import { 
-    View, Text, TextInput, TouchableOpacity, StyleSheet, 
-    ActivityIndicator, Platform, TouchableWithoutFeedback, Keyboard 
+    View, Text, TouchableOpacity, StyleSheet, 
+    Platform, TouchableWithoutFeedback, Keyboard 
 } from 'react-native';
+import { AppInput } from '../ui/AppInput';   // <--- Gjenbruk
+import { AppButton } from '../ui/AppButton'; // <--- Gjenbruk
 
 const styles = StyleSheet.create({
   card: { 
@@ -15,16 +17,7 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 8 },
   subtitle: { textAlign: 'center', marginBottom: 24 },
-  label: { fontSize: 14, fontWeight: '600', marginBottom: 6, marginLeft: 4 },
-  input: { 
-    padding: 16, 
-    borderRadius: 12, 
-    marginBottom: 16, 
-    fontSize: 16, 
-    borderWidth: 1 
-  },
-  button: { padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 8 },
-  btnText: { fontWeight: 'bold', fontSize: 16 },
+  // 'input', 'label', 'button' styles er nå fjernet herfra fordi de ligger i ui-komponentene!
   switchButton: { marginTop: 20, alignItems: 'center', padding: 10 },
   switchText: { fontWeight: '600' }
 });
@@ -49,46 +42,29 @@ export const LoginCard = ({
                 {isLoginMode ? 'Logg inn for å fortsette' : 'Opprett ny brukerkonto'}
             </Text>
             
-            <Text style={[styles.label, { color: theme.text }]}>E-post</Text>
-            <TextInput 
-              placeholder="din@epost.no" 
-              placeholderTextColor={theme.subText} 
-              style={[styles.input, { 
-                  backgroundColor: theme.inputBg, 
-                  borderColor: theme.inputBorder, 
-                  color: theme.inputText 
-              }]} 
-              autoCapitalize="none" 
-              keyboardType="email-address" 
-              value={email} 
-              onChangeText={setEmail} 
+            <AppInput 
+                label="E-post"
+                placeholder="din@epost.no"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
             />
             
-            <Text style={[styles.label, { color: theme.text }]}>Passord</Text>
-            <TextInput 
-              placeholder="********" 
-              placeholderTextColor={theme.subText}
-              style={[styles.input, { 
-                  backgroundColor: theme.inputBg, 
-                  borderColor: theme.inputBorder, 
-                  color: theme.inputText 
-              }]} 
-              secureTextEntry 
-              value={password} 
-              onChangeText={setPassword} 
+            <AppInput 
+                label="Passord"
+                placeholder="********"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
             />
 
-            <TouchableOpacity 
-              style={[styles.button, { backgroundColor: theme.button }]} 
-              onPress={onAuthAction} 
-              disabled={loading}
-            >
-              {loading ? <ActivityIndicator color="#fff" /> : (
-                  <Text style={[styles.btnText, { color: theme.buttonText }]}>
-                      {isLoginMode ? 'Logg Inn' : 'Opprett Bruker'}
-                  </Text>
-              )}
-            </TouchableOpacity>
+            <AppButton 
+                title={isLoginMode ? 'Logg Inn' : 'Opprett Bruker'}
+                onPress={onAuthAction}
+                loading={loading}
+                style={{ marginTop: 10 }} // Litt ekstra luft over knappen
+            />
 
             <TouchableOpacity style={styles.switchButton} onPress={() => setIsLoginMode(!isLoginMode)}>
                 <Text style={[styles.switchText, { color: theme.button }]}>

@@ -1,21 +1,20 @@
 import { useState, useEffect } from 'react';
-// La til 'setDoc' i importen her:
+import { Alert } from 'react-native'; // Bruker native Alert nå
 import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, updateDoc, setDoc } from 'firebase/firestore';
 import { db } from '../config/firebaseconfig';
 
 export const useAdminLogic = () => {
-  // --- STATE: Data ---
+  // --- STATE ---
   const [childrenList, setChildrenList] = useState([]);
   const [employeeList, setEmployeeList] = useState([]);
   const [departmentList, setDepartmentList] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // --- STATE: UI ---
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
 
-  // --- STATE: Forms ---
+  // --- FORM STATES ---
   const [childName, setChildName] = useState('');
   const [childDept, setChildDept] = useState('');
   const [childAllergy, setChildAllergy] = useState(false);
@@ -28,10 +27,6 @@ export const useAdminLogic = () => {
   const [empEmail, setEmpEmail] = useState('');
 
   const [deptName, setDeptName] = useState('');
-
-  // --- STATE: Alert ---
-  const [alertVisible, setAlertVisible] = useState(false);
-  const [alertConfig, setAlertConfig] = useState({ title: '', message: '', buttons: [] });
 
   // --- DATA HENTING ---
   useEffect(() => {
@@ -46,13 +41,6 @@ export const useAdminLogic = () => {
   }, []);
 
   // --- HJELPEFUNKSJONER ---
-  const showAlert = (title, message, buttons = []) => {
-    if (buttons.length === 0) buttons = [{ text: "OK", onPress: () => setAlertVisible(false) }];
-    setAlertConfig({ title, message, buttons });
-    setAlertVisible(true);
-  };
-  const hideAlert = () => setAlertVisible(false);
-
   const resetForm = () => {
     setChildName(''); setChildDept(''); setChildAllergy(false); setGuardianEmails([]); setEmailInput('');
     setEmpName(''); setEmpDept(''); setEmpPhone(''); setEmpEmail('');
@@ -90,93 +78,89 @@ export const useAdminLogic = () => {
   };
 
   const handleDelete = (collectionName, id, name) => {
-    showAlert("Slett oppføring", `Er du sikker på at du vil slette ${name}?`, [
-        { text: "Avbryt", style: "cancel", onPress: hideAlert },
-        { text: "Slett", style: "destructive", onPress: async () => {
-            try { await deleteDoc(doc(db, collectionName, id)); hideAlert(); } 
-            catch(e) { hideAlert(); showAlert("Feil", "Kunne ikke slette: " + e.message); }
-        }}
-    ]);
+    Alert.alert(
+        "Slett oppføring", 
+        `Er du sikker på at du vil slette ${name}?`,
+        [
+            { text: "Avbryt", style: "cancel" },
+            { 
+                text: "Slett", 
+                style: "destructive", 
+                onPress: async () => {
+                    try { await deleteDoc(doc(db, collectionName, id)); } 
+                    catch(e) { Alert.alert("Feil", "Kunne ikke slette: " + e.message); }
+                }
+            }
+        ]
+    );
   };
 
   const handleSaveChild = async () => {
-    if (!childName || guardianEmails.length === 0) return showAlert('Mangler info', 'Navn og foresatt må fylles ut.');
+    if (!childName || guardianEmails.length === 0) return Alert.alert('Mangler info', 'Navn og foresatt må fylles ut.');
     setLoading(true);
     try {
       const data = { name: childName, avdeling: childDept, guardianEmails, allergy: childAllergy, image: `https://api.dicebear.com/7.x/avataaars/png?seed=${childName}` };
       if (editId) await updateDoc(doc(db, "children", editId), data);
       else await addDoc(collection(db, "children"), { ...data, status: 'home', isSick: false, checkInTime: null, createdAt: new Date() });
-      showAlert('Suksess', 'Lagret!', [{text:"OK", onPress:()=>{hideAlert(); resetForm()}}]);
-    } catch (e) { showAlert('Feil', 'Kunne ikke lagre.'); } finally { setLoading(false); }
+      Alert.alert('Suksess', 'Barn lagret!', [{ text: "OK", onPress: resetForm }]);
+    } catch (e) { Alert.alert('Feil', 'Kunne ikke lagre.'); } finally { setLoading(false); }
   };
 
-  // --- ENDRET FUNKSJON FOR Å FIKSE TILGANG ---
   const handleSaveEmployee = async () => {
-    if (!empName || !empEmail) return showAlert('Mangler info', 'Navn og e-post må fylles ut.');
+    if (!empName || !empEmail) return Alert.alert('Mangler info', 'Navn og e-post må fylles ut.');
     setLoading(true);
     try {
-      // 1. Vask e-posten for å bruke den som nøkkel (små bokstaver, ingen mellomrom)
       const emailKey = empEmail.toLowerCase().trim();
-
       const data = { 
         name: empName, 
         department: empDept, 
-        email: emailKey, // Lagre den vaskede e-posten
+        email: emailKey,
         phone: empPhone, 
         image: `https://api.dicebear.com/7.x/avataaars/png?seed=${empName}` 
       };
 
       if (editId) {
-        // Hvis vi redigerer, oppdater eksisterende dokument
         await updateDoc(doc(db, "employees", editId), data);
       } else {
-        // NYTT: Bruk setDoc med e-post som ID i stedet for addDoc
-        // Dette sikrer at reglene finner "employees/epost@adresse.no"
         await setDoc(doc(db, "employees", emailKey), { ...data, createdAt: new Date() });
       }
       
-      showAlert('Suksess', 'Lagret!', [{text:"OK", onPress:()=>{hideAlert(); resetForm()}}]);
+      Alert.alert('Suksess', 'Ansatt lagret!', [{ text: "OK", onPress: resetForm }]);
     } catch (e) { 
       console.error(e);
-      showAlert('Feil', 'Kunne ikke lagre: ' + e.message); 
+      Alert.alert('Feil', 'Kunne ikke lagre: ' + e.message); 
     } finally { 
       setLoading(false); 
     }
   };
-  // ---------------------------------------------
 
   const handleSaveDepartment = async () => {
-    if (!deptName) return showAlert('Mangler info', 'Skriv navn.');
+    if (!deptName) return Alert.alert('Mangler info', 'Skriv navn.');
     setLoading(true);
     try {
       if (editId) await updateDoc(doc(db, "departments", editId), { name: deptName });
       else await addDoc(collection(db, "departments"), { name: deptName, createdAt: new Date() });
-      showAlert('Suksess', 'Lagret!', [{text:"OK", onPress:()=>{hideAlert(); resetForm()}}]);
-    } catch (e) { showAlert('Feil', 'Kunne ikke lagre.'); } finally { setLoading(false); }
+      Alert.alert('Suksess', 'Avdeling lagret!', [{ text: "OK", onPress: resetForm }]);
+    } catch (e) { Alert.alert('Feil', 'Kunne ikke lagre.'); } finally { setLoading(false); }
   };
 
   const addGuardianEmail = () => {
     const email = emailInput.trim().toLowerCase();
     if (email.includes('@') && !guardianEmails.includes(email)) { setGuardianEmails([...guardianEmails, email]); setEmailInput(''); }
-    else showAlert('Ugyldig', 'Sjekk e-post.');
+    else Alert.alert('Ugyldig', 'Sjekk e-post.');
   };
   const removeGuardianEmail = (e) => setGuardianEmails(guardianEmails.filter(x => x !== e));
 
-  // Returner ALT UI trenger
   return {
     childrenList, employeeList, departmentList, loading,
     activeTab, setActiveTab, showForm, setShowForm, editId, setEditId,
-    // Skjema states
     forms: {
       child: { name: childName, setName: setChildName, dept: childDept, setDept: setChildDept, allergy: childAllergy, setAllergy: setChildAllergy, emails: guardianEmails, emailInput, setEmailInput },
       employee: { name: empName, setName: setEmpName, dept: empDept, setDept: setEmpDept, phone: empPhone, setPhone: setEmpPhone, email: empEmail, setEmail: setEmpEmail },
       department: { name: deptName, setName: setDeptName }
     },
-    // Funksjoner
     getStats, handleEdit, handleDelete, resetForm,
     handleSaveChild, handleSaveEmployee, handleSaveDepartment,
-    addGuardianEmail, removeGuardianEmail,
-    // Alert
-    alert: { visible: alertVisible, config: alertConfig, hide: hideAlert }
+    addGuardianEmail, removeGuardianEmail
   };
 };

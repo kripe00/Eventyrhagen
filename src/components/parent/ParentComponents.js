@@ -1,6 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Modal, KeyboardAvoidingView, Platform, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { AppInput } from '../ui/AppInput';   // <--- Gjenbruk
+import { AppButton } from '../ui/AppButton'; // <--- Gjenbruk
 
 const styles = StyleSheet.create({
   messageContainer: { marginBottom: 20 },
@@ -17,25 +19,19 @@ const styles = StyleSheet.create({
   childName: { fontSize: 24, fontWeight: 'bold' },
   dept: { fontSize: 16 },
   statusBadge: { padding: 10, borderRadius: 12, alignItems: 'center', marginBottom: 20 },
-  bgGreen: { backgroundColor: '#dcfce7' },
-  bgGray: { backgroundColor: '#f3f4f6' },
-  bgRed: { backgroundColor: '#fee2e2' },
   statusText: { fontWeight: 'bold', fontSize: 16 },
+  
   actions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
   bigBtn: { flex: 1, flexDirection: 'row', height: 55, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: 10, shadowColor: '#000', shadowOpacity: 0.1, elevation: 2 },
-  btnGreen: { backgroundColor: '#16a34a' },
-  btnBlue: { backgroundColor: '#2563eb' },
-  btnOrange: { backgroundColor: '#d97706' },
   btnText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
   sickBtn: { padding: 15, borderWidth: 1, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  
   messageBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', padding: 15, borderRadius: 12 },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { padding: 20, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
-  modalTitle: { fontSize: 18, fontWeight: 'bold' },
-  msgInput: { height: 120, borderRadius: 12, padding: 15, textAlignVertical: 'top', fontSize: 16, marginBottom: 15 },
-  sendBtn: { backgroundColor: '#4f46e5', padding: 15, borderRadius: 12, alignItems: 'center' },
-  sendBtnText: { color: 'white', fontWeight: 'bold', fontSize: 16 }
+  modalContent: { padding: 24, borderTopLeftRadius: 20, borderTopRightRadius: 20 }, // Litt mer padding
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15 },
+  modalHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }
 });
 
 export const MessagesSection = ({ messages, theme }) => {
@@ -67,14 +63,14 @@ export const ChildCard = ({ item, theme, onToggleStatus, onReportSickness, onOpe
             </View>
         </View>
 
-        <View style={[styles.statusBadge, item.isSick ? styles.bgRed : item.status === 'present' ? styles.bgGreen : styles.bgGray, item.status === 'home' && !item.isSick && {backgroundColor: theme.background}]}>
+        <View style={[styles.statusBadge, item.isSick ? {backgroundColor: '#fee2e2'} : item.status === 'present' ? {backgroundColor: '#dcfce7'} : {backgroundColor: '#f3f4f6'}, item.status === 'home' && !item.isSick && {backgroundColor: theme.background}]}>
             <Text style={[styles.statusText, item.isSick && {color:'#991b1b'}, !item.isSick && item.status === 'home' && {color: theme.subText}]}>
                 {item.isSick ? 'Meldt fravær' : item.status === 'present' ? 'I Barnehagen' : 'Hjemme'}
             </Text>
         </View>
 
         <View style={styles.actions}>
-            <TouchableOpacity style={[styles.bigBtn, item.isSick ? styles.btnOrange : item.status === 'home' ? styles.btnGreen : styles.btnBlue]} onPress={() => onToggleStatus(item)}>
+            <TouchableOpacity style={[styles.bigBtn, item.isSick ? {backgroundColor: '#d97706'} : item.status === 'home' ? {backgroundColor: '#16a34a'} : {backgroundColor: '#2563eb'}]} onPress={() => onToggleStatus(item)}>
                 <Ionicons name={item.status === 'home' ? "log-in-outline" : "log-out-outline"} size={24} color="white" style={{marginRight:8}} />
                 <Text style={styles.btnText}>{item.isSick ? 'Friskmeld' : item.status === 'home' ? 'LEVER' : 'HENT'}</Text>
             </TouchableOpacity>
@@ -100,22 +96,27 @@ export const SendMessageModal = ({ visible, theme, child, content, setContent, o
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
             <View style={[styles.modalContent, { backgroundColor: theme.modalBg }]}>
-                <View style={{flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15}}>
+                
+                <View style={styles.modalHeaderRow}>
                     <Text style={[styles.modalTitle, { color: theme.text }]}>Melding til {child?.avdeling}</Text>
                     <TouchableOpacity onPress={onClose}><Ionicons name="close" size={24} color={theme.text} /></TouchableOpacity>
                 </View>
-                <Text style={{marginBottom: 10, color: theme.subText}}>Gjelder: {child?.name}</Text>
-                <TextInput 
-                    style={[styles.msgInput, { backgroundColor: theme.inputBg, color: theme.text }]} 
+                
+                <Text style={{marginBottom: 15, color: theme.subText}}>Gjelder: {child?.name}</Text>
+                
+                {/* --- BRUKER NYE KOMPONENTER HER --- */}
+                <AppInput 
                     placeholder="Skriv beskjeden din her (f.eks. 'Bestemor henter i dag')..." 
                     multiline 
                     value={content}
                     onChangeText={setContent}
-                    placeholderTextColor={theme.subText}
                 />
-                <TouchableOpacity style={styles.sendBtn} onPress={onSend}>
-                    <Text style={styles.sendBtnText}>SEND MELDING</Text>
-                </TouchableOpacity>
+                
+                <AppButton 
+                    title="SEND MELDING" 
+                    onPress={onSend} 
+                />
+                
             </View>
         </KeyboardAvoidingView>
     </Modal>

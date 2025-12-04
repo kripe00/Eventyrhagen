@@ -1,51 +1,29 @@
+import React from 'react';
+import { FlatList, KeyboardAvoidingView, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { FlatList, KeyboardAvoidingView, Modal, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '../context/Authcontext';
 import { useAdminLogic } from '../hooks/useAdminLogic';
 
-
+// Komponenter
+// VIKTIG: Pass på at disse stiene stemmer. De ligger i src/components/admin/
 import AdminDashboard from '../components/admin/AdminDashboard';
-import { ChildForm, DepartmentForm, EmployeeForm } from '../components/admin/AdminForms';
-import { DepartmentItem, ListItem } from '../components/admin/AdminListItems';
+import { ListItem, DepartmentItem } from '../components/admin/AdminListItems';
+import { ChildForm, EmployeeForm, DepartmentForm } from '../components/admin/AdminForms';
 
 const Colors = {
   light: { 
-    background: '#f3f4f6', 
-    headerBg: '#1e293b', 
-    card: 'white', 
-    text: '#1f2937', 
-    subText: '#6b7280', 
-    borderColor: '#e5e7eb', 
-    inputBg: 'white', 
-    tabActive: '#e0e7ff', 
-    tabText: '#4b5563', 
-    linkedItem: '#f3f4f6',
-    
-    
-    statBlue: '#e0e7ff', statBlueText: '#4338ca',
-    statGreen: '#dcfce7', statGreenText: '#15803d',
-    statRed: '#fee2e2', statRedText: '#991b1b',
-    statOrange: '#ffedd5', statOrangeText: '#c2410c',
+    background: '#f3f4f6', headerBg: '#1e293b', card: 'white', text: '#1f2937', subText: '#6b7280', 
+    borderColor: '#e5e7eb', inputBg: 'white', tabActive: '#e0e7ff', tabText: '#4b5563', linkedItem: '#f3f4f6',
+    statBlue: '#e0e7ff', statBlueText: '#4338ca', statGreen: '#dcfce7', statGreenText: '#15803d',
+    statRed: '#fee2e2', statRedText: '#991b1b', statOrange: '#ffedd5', statOrangeText: '#c2410c',
   },
   dark: { 
-    background: '#111827', 
-    headerBg: '#0f172a', 
-    card: '#1f2937', 
-    text: '#f3f4f6', 
-    subText: '#9ca3af', 
-    borderColor: '#374151', 
-    inputBg: '#374151', 
-    tabActive: '#374151', 
-    tabText: '#d1d5db', 
-    linkedItem: '#374151',
-    
-    
-    statBlue: '#1e3a8a', statBlueText: '#bfdbfe',
-    statGreen: '#064e3b', statGreenText: '#86efac',
-    statRed: '#7f1d1d', statRedText: '#fca5a5',
-    statOrange: '#7c2d12', statOrangeText: '#fdba74',
+    background: '#111827', headerBg: '#0f172a', card: '#1f2937', text: '#f3f4f6', subText: '#9ca3af', 
+    borderColor: '#374151', inputBg: '#374151', tabActive: '#374151', tabText: '#d1d5db', linkedItem: '#374151',
+    statBlue: '#1e3a8a', statBlueText: '#bfdbfe', statGreen: '#064e3b', statGreenText: '#86efac',
+    statRed: '#7f1d1d', statRedText: '#fca5a5', statOrange: '#7c2d12', statOrangeText: '#fdba74',
   }
 };
 
@@ -59,7 +37,7 @@ export default function AdminScreen() {
     activeTab, setActiveTab, showForm, setShowForm, editId, setEditId,
     forms, getStats, handleEdit, handleDelete, resetForm,
     handleSaveChild, handleSaveEmployee, handleSaveDepartment,
-    addGuardianEmail, removeGuardianEmail, alert
+    addGuardianEmail, removeGuardianEmail
   } = useAdminLogic();
 
   return (
@@ -132,6 +110,7 @@ export default function AdminScreen() {
               </View>
 
               <FlatList
+                style={{ flex: 1 }} // <--- VIKTIG FOR WEB SCROLLING
                 data={activeTab === 'child' ? childrenList : activeTab === 'employee' ? employeeList : departmentList}
                 renderItem={({ item }) => activeTab === 'department' ? (
                     <DepartmentItem item={item} theme={theme} onEdit={handleEdit} onDelete={handleDelete} childrenList={childrenList} employeeList={employeeList} />
@@ -198,23 +177,6 @@ export default function AdminScreen() {
           )}
         </View>
       </View>
-
-      {/* --- ALERT MODAL --- */}
-      <Modal visible={alert.visible} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-            <View style={[styles.alertBox, {backgroundColor: theme.card}]}>
-                <Text style={[styles.alertTitle, {color: theme.text}]}>{alert.config.title}</Text>
-                <Text style={[styles.alertMessage, {color: theme.subText}]}>{alert.config.message}</Text>
-                <View style={styles.alertButtonRow}>
-                    {alert.config.buttons.map((btn, i) => (
-                        <TouchableOpacity key={i} onPress={btn.onPress} style={[styles.alertButton, btn.style === 'destructive' ? styles.btnDestructive : styles.btnNormal]}>
-                            <Text style={[styles.alertBtnText, btn.style === 'destructive' ? {color:'white'} : {color: theme.text}]}>{btn.text}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
-            </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -243,14 +205,4 @@ const styles = StyleSheet.create({
   formHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, paddingBottom: 15, borderBottomWidth: 1 },
   backButton: { marginRight: 15, padding: 5 },
   formTitle: { fontSize: 20, fontWeight: 'bold' },
-  
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  alertBox: { width: '85%', padding: 24, borderRadius: 20, elevation: 10, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10 },
-  alertTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
-  alertMessage: { fontSize: 15, marginBottom: 24, lineHeight: 22 },
-  alertButtonRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12 },
-  alertButton: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 10 },
-  btnDestructive: { backgroundColor: '#ef4444' },
-  btnNormal: { backgroundColor: '#f3f4f6' },
-  alertBtnText: { fontWeight: '600', fontSize: 15 }
 });
