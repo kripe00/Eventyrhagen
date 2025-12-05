@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { addDoc, collection, doc, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
-import { addDoc, collection, doc, onSnapshot, orderBy, query, updateDoc, where } from 'firebase/firestore';
 import { db } from '../config/firebaseconfig';
 import { useAuth } from '../context/Authcontext';
 
@@ -24,9 +24,10 @@ export const useEmployeeLogic = () => {
 
   // 1. Hent barn
   useEffect(() => {
-    let q = userData?.department 
-        ? query(collection(db, "children"), where("avdeling", "==", userData.department))
-        : collection(db, "children");
+    // Hvis userData.department mangler, henter vi ingenting (eller alle hvis logikken tilsier det)
+    if (!userData?.department) return;
+
+    const q = query(collection(db, "children"), where("avdeling", "==", userData.department));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setChildren(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -39,11 +40,15 @@ export const useEmployeeLogic = () => {
       if (!userData?.department) return;
       const q = query(
           collection(db, "departmentMessages"), 
-          where("department", "==", userData.department),
-          orderBy("createdAt", "desc")
+          where("department", "==", userData.department)
+          // orderBy("createdAt", "desc") // Kommenter ut midlertidig hvis indeks mangler
       );
       const unsubscribe = onSnapshot(q, (snapshot) => {
-          setInboxMessages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+          // Sorterer manuelt i klienten for å unngå indeks-feil i startfasen
+          const sorted = snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .sort((a, b) => b.createdAt - a.createdAt);
+          setInboxMessages(sorted);
       });
       return unsubscribe;
   }, [userData]);
@@ -68,16 +73,38 @@ export const useEmployeeLogic = () => {
 
   const handlePublishMessage = async () => {
       if (!msgTitle || !msgContent) return Alert.alert("Mangler info", "Skriv tittel og innhold.");
+      
+      // VIKTIG FIKS: Sjekk at vi vet hvem som sender (Avdeling)
+      const departmentName = userData?.department;
+
+      if (!departmentName) {
+          return Alert.alert(
+              "Manglende avdeling", 
+              "Systemet vet ikke hvilken avdeling du tilhører. Logg ut og inn igjen, eller kontakt admin."
+          );
+      }
+
       setLoading(true);
       try {
           const dateStr = new Date().toLocaleDateString('no-NO', { day: 'numeric', month: 'long' });
+          
           await addDoc(collection(db, "messages"), { 
-              title: msgTitle, content: msgContent, date: dateStr,
-              author: userData?.department || "Ansatt", createdAt: new Date() 
+              title: msgTitle, 
+              content: msgContent, 
+              date: dateStr,
+              author: departmentName, // <--- HER MÅ DET STÅ "Solstrålen", ikke "Ansatt"
+              createdAt: new Date() 
           });
-          Alert.alert("Suksess", "Beskjed sendt!");
-          setMsgTitle(''); setMsgContent(''); setMsgModalVisible(false);
-      } catch (error) { Alert.alert("Feil", error.message); } finally { setLoading(false); }
+          
+          Alert.alert("Suksess", `Beskjed sendt fra ${departmentName}!`);
+          setMsgTitle(''); 
+          setMsgContent(''); 
+          setMsgModalVisible(false);
+      } catch (error) { 
+          Alert.alert("Feil", error.message); 
+      } finally { 
+          setLoading(false); 
+      }
   };
 
   // Filtrering
@@ -91,14 +118,11 @@ export const useEmployeeLogic = () => {
   const totalCount = children.length;
 
   return {
-    // Data
     children: filteredChildren,
     allChildrenCount: totalCount,
     presentCount,
     inboxMessages,
     userData,
-    
-    // State
     filter, setFilter,
     selectedChild, setSelectedChild,
     msgModalVisible, setMsgModalVisible,
@@ -106,8 +130,6 @@ export const useEmployeeLogic = () => {
     loading,
     msgTitle, setMsgTitle,
     msgContent, setMsgContent,
-
-    // Actions
     toggleCheckIn,
     handlePublishMessage,
     logout

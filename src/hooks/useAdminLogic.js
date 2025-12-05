@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, setDoc, updateDoc } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
 import { Alert } from 'react-native'; // Bruker native Alert nå
-import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, updateDoc, setDoc } from 'firebase/firestore';
 import { db } from '../config/firebaseconfig';
 
 export const useAdminLogic = () => {
