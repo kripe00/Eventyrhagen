@@ -8,19 +8,20 @@ import { useParentLogic } from '../hooks/useParentLogic';
 import { MessagesSection, ChildCard, SendMessageModal } from '../components/parent/ParentComponents';
 import { SettingsModal } from '../components/ui/SettingsModal';
 import { useTheme } from '../context/ThemeContext';
-import { useLanguage } from '../context/LanguageContext'; // <--- NY
+import { useLanguage } from '../context/LanguageContext';
 
 export default function ParentScreen() {
   const { theme } = useTheme(); 
-  const { t } = useLanguage(); // <--- Hent t() fra context
+  const { t } = useLanguage();
   const [showSettings, setShowSettings] = useState(false);
 
   const {
-    children, messages, loading, logout,
+    children, messages, loading, logout, user,
     msgModalVisible, setMsgModalVisible,
     msgContent, setMsgContent,
     selectedChild, setSelectedChild,
-    handleSendMessage, toggleStatus, reportSickness
+    handleSendMessage, toggleStatus, reportSickness,
+    markMessageAsRead
   } = useParentLogic();
 
   if (loading) return (
@@ -35,17 +36,15 @@ export default function ParentScreen() {
       
       {/* Header */}
       <View style={[styles.header, { backgroundColor: theme.headerBg, borderBottomColor: theme.borderColor }]}>
-        {/* Tittel oversettes automatisk */}
-        <Text style={[styles.headerTitle, { color: 'white' }]}>{t('headerTitle')}</Text>
-        
+        <Text style={[styles.headerTitle, { color: theme.text }]}>{t('headerTitle')}</Text>
         <View style={{flexDirection: 'row', gap: 15}}>
             <TouchableOpacity onPress={() => setShowSettings(true)}>
-                <Ionicons name="settings-outline" size={24} color="white" />
+                <Ionicons name="settings-outline" size={24} color={theme.text} />
             </TouchableOpacity>
 
             <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
-                <Text style={{marginRight:5, color: 'white', fontWeight:'500'}}>{t('logout')}</Text>
-                <Ionicons name="log-out-outline" size={24} color="white" />
+                <Text style={{marginRight:5, color: theme.text, fontWeight:'500'}}>{t('logout')}</Text>
+                <Ionicons name="log-out-outline" size={24} color={theme.text} />
             </TouchableOpacity>
         </View>
       </View>
@@ -55,20 +54,24 @@ export default function ParentScreen() {
         <FlatList 
             data={children}
             renderItem={({ item }) => (
-                <ChildCard 
-                    item={item} 
-                    theme={theme} 
-                    // Trenger ikke sende selectedLang lenger
-                    onToggleStatus={toggleStatus} 
-                    onReportSickness={reportSickness} 
-                    onOpenMessageModal={(child) => { setSelectedChild(child); setMsgModalVisible(true); }}
-                />
+                 <ChildCard 
+                     item={item} 
+                     theme={theme} 
+                     onToggleStatus={toggleStatus} 
+                     onReportSickness={reportSickness} 
+                     onOpenMessageModal={(child) => { setSelectedChild(child); setMsgModalVisible(true); }}
+                 />
             )}
             keyExtractor={item => item.id}
             contentContainerStyle={{padding: 20}}
             ListHeaderComponent={
                 <>
-                    <MessagesSection messages={messages} theme={theme} />
+                    <MessagesSection 
+                        messages={messages} 
+                        theme={theme} 
+                        currentUser={user}
+                        onMarkAsRead={markMessageAsRead}
+                    />
                     
                     {children.length === 0 && (
                         <View style={styles.center}>
@@ -107,5 +110,5 @@ const styles = StyleSheet.create({
   center: { alignItems: 'center', padding: 20, marginTop: 50 },
   header: { padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1 },
   headerTitle: { fontSize: 22, fontWeight: 'bold' },
-  logoutBtn: { flexDirection: 'row', alignItems: 'center' },
+  logoutBtn: { flexDirection: 'row', alignItems: 'center', padding: 5 },
 });

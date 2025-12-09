@@ -124,6 +124,13 @@ const UI = {
     modalSend: 'ส่งข้อความ',
   },
 };
+export const LANGUAGE_OPTIONS = [
+  { code: 'no', label: 'Norsk' },
+  { code: 'en', label: 'English' },
+  { code: 'pl', label: 'Polski' },
+  { code: 'ar', label: 'العربية' },
+  { code: 'th', label: 'ไทย' },
+];
 
 // Liten hjelpefunksjon
 export function t(lang, key) {

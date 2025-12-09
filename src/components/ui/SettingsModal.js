@@ -8,7 +8,7 @@ import { AppButton } from './AppButton';
 import { AppInput } from './AppInput';
 
 
-import { LANGUAGE_OPTIONS } from '../../utils/translationService';
+import { LANGUAGE_OPTIONS } from '../../utils/uiTranslations';
 
 export const SettingsModal = ({ visible, onClose }) => {
   const { user, updateUserEmail } = useAuth();

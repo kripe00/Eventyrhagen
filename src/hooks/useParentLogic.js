@@ -1,160 +1,199 @@
-import { useState, useEffect } from 'react';
-import { Alert, useColorScheme } from 'react-native';
-import { collection, query, where, onSnapshot, orderBy, addDoc, updateDoc, doc } from 'firebase/firestore';
-import { db } from '../config/firebaseconfig';
-import { useAuth } from '../context/Authcontext';
-
-// Fargepalett
-const Colors = {
-  light: {
-    background: '#f3f4f6',
-    card: 'white',
-    text: '#1f2937',
-    subText: '#6b7280',
-    headerBg: 'white',
-    borderColor: '#e5e7eb',
-    modalBg: 'white',
-    inputBg: '#f9fafb',
-    messageCardBg: '#fff7ed',
-    messageCardBorder: '#fed7aa',
-    messageTitle: '#9a3412',
-    messageContent: '#4b5563',
-    sickBtn: '#fef2f2',
-    sickBorder: '#fecaca',
-    msgBtn: '#e0e7ff',
-    msgBtnText: '#4f46e5',
-    msgBtnIcon: '#4f46e5'
-  },
-  dark: {
-    background: '#111827',
-    card: '#1f2937',
-    text: '#f3f4f6',
-    subText: '#9ca3af',
-    headerBg: '#111827',
-    borderColor: '#374151',
-    modalBg: '#1f2937',
-    inputBg: '#374151',
-    messageCardBg: '#431407', 
-    messageCardBorder: '#7c2d12',
-    messageTitle: '#fdba74',
-    messageContent: '#e5e7eb',
-    sickBtn: '#374151',
-    sickBorder: '#991b1b',
-    msgBtn: '#1e1b4b',
-    msgBtnText: '#a5b4fc',
-    msgBtnIcon: '#a5b4fc'
-  }
-};
+import {
+    addDoc,
+    arrayUnion,
+    collection,
+    doc,
+    onSnapshot,
+    orderBy,
+    query,
+    Timestamp,
+    updateDoc,
+    where
+} from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+// --- HER VAR FEILEN, NÅ ER DEN RETTET: ---
+import { signOut } from 'firebase/auth';
+import { auth, db } from '../config/firebaseconfig';
 
 export const useParentLogic = () => {
-    const { user, logout } = useAuth();
-    const [children, setChildren] = useState([]);
-    const [messages, setMessages] = useState([]); 
-    const [loading, setLoading] = useState(true);
-    
-    // State for meldinger
-    const [msgModalVisible, setMsgModalVisible] = useState(false);
-    const [msgContent, setMsgContent] = useState('');
-    const [selectedChild, setSelectedChild] = useState(null);
+  const [children, setChildren] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
 
-    const colorScheme = useColorScheme();
-    const theme = Colors[colorScheme] || Colors.light;
+  // Modal states
+  const [msgModalVisible, setMsgModalVisible] = useState(false);
+  const [msgContent, setMsgContent] = useState('');
+  const [selectedChild, setSelectedChild] = useState(null);
 
-    // 1. Hent barn tilknyttet forelder
-    useEffect(() => {
-        if (!user?.email) return;
-        const q = query(collection(db, "children"), where("guardianEmails", "array-contains", user.email));
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-          setChildren(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+  // 1. Sjekk bruker og lytt til Auth
+  useEffect(() => {
+    const unsubscribeAuth = auth.onAuthStateChanged((currentUser) => {
+      setUser(currentUser);
+      if (!currentUser) {
+        setChildren([]);
+        setMessages([]);
+        setLoading(false);
+      }
+    });
+    return unsubscribeAuth;
+  }, []);
+
+  // 2. Hent barn og meldinger når bruker er logget inn
+  useEffect(() => {
+    if (!user) return;
+
+    // Hent barn koblet til forelderen
+    const qChildren = query(
+        collection(db, 'children'), 
+        where('guardianEmails', 'array-contains', user.email)
+    );
+
+    const unsubChildren = onSnapshot(qChildren, (snapshot) => {
+      const childList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setChildren(childList);
+      
+      // Når vi har barna, kan vi hente meldinger for deres avdelinger
+      if (childList.length > 0) {
+          const avdelinger = [...new Set(childList.map(c => c.avdeling))]; // Unike avdelinger
+          
+          // Merk: 'in'-spørringer i Firestore støtter maks 10 verdier
+          const qMessages = query(
+              collection(db, 'messages'),
+              where('author', 'in', ['alle', ...avdelinger]), // Endret fra 'target' til 'author' basert på din EmployeeLogic
+              orderBy('createdAt', 'desc')
+          );
+
+          const unsubMessages = onSnapshot(qMessages, (msgSnap) => {
+              const msgs = msgSnap.docs.map(d => ({ 
+                  id: d.id, 
+                  ...d.data(),
+                  // Konverter Timestamp til lesbar string hvis nødvendig
+                  date: d.data().createdAt?.toDate ? d.data().createdAt.toDate().toLocaleDateString('no-NO') : ''
+              }));
+              setMessages(msgs);
+              setLoading(false);
+          });
+
+          return () => unsubMessages();
+      } else {
           setLoading(false);
-        });
-        return unsubscribe;
-    }, [user]);
+      }
+    });
 
-    // 2. Hent beskjeder (FILTRERT PÅ AVDELING)
-    useEffect(() => {
-        // Vi må vente til vi vet hvilke avdelinger barna går i
-        if (children.length === 0) {
-            setMessages([]);
-            return;
-        }
+    return () => unsubChildren();
+  }, [user]);
 
-        // Finn alle unike avdelinger barna tilhører 
-        const myDepartments = [...new Set(children.map(child => child.avdeling).filter(d => d))];
+  // --- Handlers ---
 
-        if (myDepartments.length === 0) return;
+  const logout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
 
-        // Spørring: Hent meldinger der 'author' (avdelingsnavn) er i listen over mine avdelinger
-       
-        const q = query(
-            collection(db, "messages"), 
-            where("author", "in", myDepartments), 
-            orderBy("createdAt", "desc")
-        );
+  const handleSendMessage = async () => {
+    if (!msgContent.trim() || !selectedChild) return;
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-          setMessages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-        }, (error) => {
-            console.log("Feil ved henting av meldinger (sjekk indeks):", error);
-        });
-        
-        return unsubscribe;
-    }, [children]); // Kjøres på nytt når listen over barn endres
+    try {
+      await addDoc(collection(db, 'departmentMessages'), {
+        content: msgContent,
+        childName: selectedChild.name,
+        childId: selectedChild.id,
+        department: selectedChild.avdeling,
+        fromEmail: user.email,
+        createdAt: Timestamp.now(),
+        read: false
+      });
 
-    // --- Actions ---
+      setMsgModalVisible(false);
+      setMsgContent('');
+      alert('Melding sendt!');
+    } catch (error) {
+      console.error("Error sending message:", error);
+      alert('Noe gikk galt ved sending av melding.');
+    }
+  };
 
-    const handleSendMessage = async () => {
-        if (!msgContent.trim()) return Alert.alert("Tom melding", "Du må skrive noe.");
+  const toggleStatus = async (child) => {
+    // Hvis barnet er sykt, må vi først friskmelde (fjerne isSick)
+    if (child.isSick) {
         try {
-            await addDoc(collection(db, "departmentMessages"), {
-                content: msgContent,
-                childName: selectedChild.name,
-                childId: selectedChild.id,
-                department: selectedChild.avdeling, 
-                fromEmail: user.email,
-                createdAt: new Date(),
-                read: false 
+            await updateDoc(doc(db, 'children', child.id), {
+                isSick: false,
+                status: 'home' // Setter til hjemme når friskmeldt
             });
-            Alert.alert("Sendt", "Meldingen er sendt til avdelingen.");
-            setMsgContent('');
-            setMsgModalVisible(false);
-        } catch (e) {
-            Alert.alert("Feil", "Kunne ikke sende melding: " + e.message);
+        } catch (error) {
+            console.error("Kunne ikke friskmelde:", error);
         }
-    };
+        return;
+    }
 
-    const toggleStatus = async (child) => {
-        try {
-            const childRef = doc(db, "children", child.id);
-            const newStatus = child.status === 'home' ? 'present' : 'home';
-            const updates = { status: newStatus, isSick: false };
-            if (newStatus === 'present') {
-              const now = new Date();
-              updates.checkInTime = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
-            } else { updates.checkInTime = null; }
-            await updateDoc(childRef, updates);
-        } catch (error) { Alert.alert("Feil", "Kunne ikke oppdatere status."); }
-    };
+    // Vanlig Sjekk inn / Sjekk ut
+    const newStatus = child.status === 'home' ? 'present' : 'home';
+    try {
+        const updates = { status: newStatus };
+        if (newStatus === 'present') {
+            const now = new Date();
+            updates.checkInTime = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+        } else {
+            updates.checkInTime = null;
+        }
+        await updateDoc(doc(db, 'children', child.id), updates);
+    } catch (error) {
+        console.error("Error updating status:", error);
+    }
+  };
 
-    const reportSickness = async (child) => {
-        Alert.alert("Meld fravær", `Melde ${child.name} syk/fri i dag?`, [
-            { text: "Avbryt", style: "cancel" },
-            { text: "Bekreft", style: "destructive", onPress: async () => {
-                try {
-                    const childRef = doc(db, "children", child.id);
-                    await updateDoc(childRef, { status: 'home', isSick: true, checkInTime: null });
-                } catch (error) { Alert.alert("Feil", "Kunne ikke registrere fravær."); }
-            }}
-        ]);
-    };
+  const reportSickness = async (child) => {
+      try {
+          await updateDoc(doc(db, 'children', child.id), {
+              isSick: true,
+              status: 'home', // Syke barn er hjemme
+              checkInTime: null
+          });
+      } catch (error) {
+          console.error("Error reporting sickness:", error);
+      }
+  };
 
-    return {
-        user, logout,
-        children, messages, loading,
-        theme, colorScheme,
-        msgModalVisible, setMsgModalVisible,
-        msgContent, setMsgContent,
-        selectedChild, setSelectedChild,
-        handleSendMessage, toggleStatus, reportSickness
-    };
+  // --- READ-FUNKSJON ---
+  const markMessageAsRead = async (messageId) => {
+    if (!user?.email) return;
+
+    // 1. Oppdater UI lokalt med en gang
+    setMessages(currentMessages => 
+        currentMessages.map(msg => 
+            msg.id === messageId 
+            ? { ...msg, readBy: [...(msg.readBy || []), user.email] }
+            : msg
+        )
+    );
+
+    try {
+        const messageRef = doc(db, 'messages', messageId);
+        await updateDoc(messageRef, {
+            readBy: arrayUnion(user.email)
+        });
+    } catch (error) {
+        console.error("Feil ved markering av lest:", error);
+    }
+  };
+
+  return {
+    children,
+    messages,
+    loading,
+    logout,
+    user,
+    msgModalVisible, setMsgModalVisible,
+    msgContent, setMsgContent,
+    selectedChild, setSelectedChild,
+    handleSendMessage,
+    toggleStatus,
+    reportSickness,
+    markMessageAsRead 
+  };
 };
