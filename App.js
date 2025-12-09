@@ -6,8 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from './src/context/Authcontext';
 import { ThemeProvider } from './src/context/ThemeContext';
-import { LanguageProvider } from './src/context/LanguageContext'; // <--- NY: Importer LanguageProvider
-
+import { LanguageProvider } from './src/context/LanguageContext'; 
 import AdminScreen from './src/screens/AdminScreen';
 import EmployeeScreen from './src/screens/EmployeeScreen';
 import LoginScreen from './src/screens/LoginScreen';
@@ -44,7 +43,6 @@ export default function App() {
     <SafeAreaProvider>
       <AuthProvider>
         <ThemeProvider>
-          {/* Pakk inn appen i LanguageProvider slik at språkvalg er tilgjengelig overalt */}
           <LanguageProvider> 
             <NavigationContainer>
               <AppNavigator />

@@ -1,24 +1,34 @@
 import React from 'react';
 import { FlatList, KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { AppInput } from '../ui/AppInput';   // <--- Gjenbruk
-import { AppButton } from '../ui/AppButton'; // <--- Gjenbruk
+import { AppInput } from '../ui/AppInput';   
+import { AppButton } from '../ui/AppButton'; 
 
-// --- STYLES ---
+
 const styles = StyleSheet.create({
   header: { padding: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerTitle: { color: 'white', fontSize: 24, fontWeight: 'bold' },
-  deptHeader: { color: '#fbbf24', fontSize: 16, fontWeight: '600' },
-  subHeader: { color: '#a5b4fc', fontSize: 12 },
+  deptHeader: { color: '#fbbf24', fontSize: 16, fontWeight: '600' }, 
+  subHeader: { color: '#a5b4fc', fontSize: 12 }, 
   headerBtn: { padding: 5, position: 'relative' },
   notificationDot: { position: 'absolute', top: 0, right: 0, width: 10, height: 10, borderRadius: 5, backgroundColor: '#ef4444', zIndex: 10 },
   
-  filters: { flexDirection: 'row', padding: 10 },
+  
+  filters: { flexDirection: 'row', padding: 10 }, 
   filterChip: { padding: 8, paddingHorizontal: 16, borderRadius: 20, marginRight: 10 },
   filterText: { fontWeight: 'bold' },
   
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20, alignItems: 'center' },
-  modalContent: { padding: 24, borderRadius: 20, width: '100%' },
+  modalContent: { 
+    width: '100%', 
+    borderRadius: 20, 
+    padding: 24, 
+    borderWidth: 1,
+    shadowColor: '#000', 
+    shadowOpacity: 0.25, 
+    shadowRadius: 4, 
+    elevation: 5 
+  },
   modalTitle: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
   warningBox: { backgroundColor: '#fee2e2', padding: 10, borderRadius: 8, marginBottom: 15, flexDirection:'row', alignItems:'center' },
   warningText: { color: '#991b1b', fontWeight: 'bold', marginLeft: 10 },
@@ -35,7 +45,7 @@ const styles = StyleSheet.create({
   inboxDate: { fontSize: 12, color: '#6b7280' }
 });
 
-// 1. DASHBOARD HEADER
+// DASHBOARD HEADER
 export const DashboardHeader = ({ theme, department, presentCount, totalCount, unreadCount, onOpenInbox, onOpenMsg, onLogout }) => (
   <View style={[styles.header, { backgroundColor: theme.headerBg }]}>
       <View>
@@ -60,22 +70,37 @@ export const DashboardHeader = ({ theme, department, presentCount, totalCount, u
   </View>
 );
 
-// 2. FILTER BAR
-export const FilterBar = ({ theme, filter, setFilter }) => (
+// FILTER BAR 
+export const FilterBar = ({ theme, filter, setFilter, sickCount }) => (
   <View style={[styles.filters, { backgroundColor: theme.card }]}>
-      {['all', 'present', 'home'].map(f => (
-          <TouchableOpacity key={f} onPress={() => setFilter(f)} style={[styles.filterChip, { backgroundColor: filter === f ? theme.headerBg : theme.filterChip }]}>
-              <Text style={[styles.filterText, { color: filter === f ? 'white' : theme.filterText }]}>{f === 'all' ? 'Alle' : f === 'present' ? 'Til stede' : 'Hjemme'}</Text>
+      {['all', 'present', 'home', 'absence'].map(f => (
+          <TouchableOpacity 
+            key={f} 
+            onPress={() => setFilter(f)} 
+            style={[
+                styles.filterChip, 
+                { backgroundColor: filter === f ? theme.headerBg : theme.filterChip }
+            ]}
+          >
+              <Text style={[
+                  styles.filterText, 
+                  { color: filter === f ? 'white' : theme.filterText }
+              ]}>
+                  {f === 'all' ? 'Alle' : 
+                   f === 'present' ? 'Til stede' : 
+                   f === 'home' ? 'Hjemme' : 
+                   `Fravær (${sickCount || 0})`} 
+              </Text>
           </TouchableOpacity>
       ))}
   </View>
 );
 
-// 3. CHECK-IN MODAL
+// 3. CHECK-IN MODAL 
 export const CheckInModal = ({ theme, visible, child, onClose, onToggle }) => (
   <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.modalBg }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.card, borderColor: theme.borderColor }]}>
               <Text style={[styles.modalTitle, { color: theme.text }]}>{child?.name}</Text>
               
               {child?.allergy && (
@@ -103,39 +128,21 @@ export const CheckInModal = ({ theme, visible, child, onClose, onToggle }) => (
   </Modal>
 );
 
-// 4. NEW MESSAGE MODAL (OPPDATERT MED APPINPUT/APPBUTTON)
+// 4. MESSAGE MODAL
 export const MessageModal = ({ theme, visible, loading, title, setTitle, content, setContent, onClose, onPublish }) => (
   <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
-          <View style={[styles.modalContent, {width: '90%', backgroundColor: theme.modalBg }]}>
+          <View style={[styles.modalContent, {width: '90%', backgroundColor: theme.card, borderColor: theme.borderColor }]}>
               <Text style={[styles.modalTitle, { color: theme.text }]}>Ny fellesbeskjed</Text>
-              
-              <AppInput 
-                label="Tittel" 
-                value={title} 
-                onChangeText={setTitle} 
-              />
-              
-              <AppInput 
-                label="Innhold" 
-                value={content} 
-                onChangeText={setContent} 
-                multiline 
-                placeholder="Skriv melding her..."
-              />
+              <AppInput label="Tittel" value={title} onChangeText={setTitle} />
+              <AppInput label="Innhold" value={content} onChangeText={setContent} multiline placeholder="Skriv melding her..."/>
               
               <View style={{flexDirection:'row', justifyContent:'space-between', alignItems: 'center', marginTop: 10}}>
                   <TouchableOpacity onPress={onClose} style={{padding:10, marginRight: 10}}>
                     <Text style={{color: theme.subText}}>Avbryt</Text>
                   </TouchableOpacity>
-                  
                   <View style={{flex: 1}}>
-                    <AppButton 
-                        title="Publiser" 
-                        onPress={onPublish} 
-                        loading={loading}
-                        style={{marginTop: 0}} // Fjerner default margin for å passe i raden
-                    />
+                    <AppButton title="Publiser" onPress={onPublish} loading={loading} style={{marginTop: 0}} />
                   </View>
               </View>
           </View>
@@ -143,7 +150,7 @@ export const MessageModal = ({ theme, visible, loading, title, setTitle, content
   </Modal>
 );
 
-// 5. INBOX MODAL
+// 5. INBOX MODAL 
 export const InboxModal = ({ theme, visible, messages, department, onClose }) => (
   <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={[styles.inboxContainer, { backgroundColor: theme.background }]}>

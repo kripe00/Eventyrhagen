@@ -1,37 +1,21 @@
 import React from 'react';
-import { FlatList, KeyboardAvoidingView, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '../context/Authcontext';
 import { useAdminLogic } from '../hooks/useAdminLogic';
+import { useTheme } from '../context/ThemeContext'; 
 
-// Komponenter
-// VIKTIG: Pass på at disse stiene stemmer. De ligger i src/components/admin/
+
 import AdminDashboard from '../components/admin/AdminDashboard';
 import { ListItem, DepartmentItem } from '../components/admin/AdminListItems';
 import { ChildForm, EmployeeForm, DepartmentForm } from '../components/admin/AdminForms';
 
-const Colors = {
-  light: { 
-    background: '#f3f4f6', headerBg: '#1e293b', card: 'white', text: '#1f2937', subText: '#6b7280', 
-    borderColor: '#e5e7eb', inputBg: 'white', tabActive: '#e0e7ff', tabText: '#4b5563', linkedItem: '#f3f4f6',
-    statBlue: '#e0e7ff', statBlueText: '#4338ca', statGreen: '#dcfce7', statGreenText: '#15803d',
-    statRed: '#fee2e2', statRedText: '#991b1b', statOrange: '#ffedd5', statOrangeText: '#c2410c',
-  },
-  dark: { 
-    background: '#111827', headerBg: '#0f172a', card: '#1f2937', text: '#f3f4f6', subText: '#9ca3af', 
-    borderColor: '#374151', inputBg: '#374151', tabActive: '#374151', tabText: '#d1d5db', linkedItem: '#374151',
-    statBlue: '#1e3a8a', statBlueText: '#bfdbfe', statGreen: '#064e3b', statGreenText: '#86efac',
-    statRed: '#7f1d1d', statRedText: '#fca5a5', statOrange: '#7c2d12', statOrangeText: '#fdba74',
-  }
-};
-
 export default function AdminScreen() {
   const { logout } = useAuth();
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme] || Colors.light;
-
+  const { theme } = useTheme(); 
+  
   const {
     childrenList, employeeList, departmentList, loading,
     activeTab, setActiveTab, showForm, setShowForm, editId, setEditId,
@@ -47,11 +31,11 @@ export default function AdminScreen() {
       {/* --- HEADER --- */}
       <View style={[styles.header, {backgroundColor: theme.headerBg}]}>
         <View>
-          <Text style={styles.headerTitle}>Barnehage Admin</Text>
-          <Text style={styles.headerSubtitle}>Administrasjonspanel</Text>
+          <Text style={[styles.headerTitle, {color: theme.headerText}]}>Barnehage Admin</Text>
+          <Text style={[styles.headerSubtitle, {color: theme.headerText, opacity: 0.7}]}>Administrasjonspanel</Text>
         </View>
         <TouchableOpacity onPress={logout} style={styles.logoutButton}>
-          <Ionicons name="log-out-outline" size={24} color="white" />
+          <Ionicons name="log-out-outline" size={24} color={theme.headerText} />
         </TouchableOpacity>
       </View>
 
@@ -80,7 +64,7 @@ export default function AdminScreen() {
                     <Text style={[
                         styles.tabText, 
                         { 
-                            color: isActive ? (colorScheme === 'dark' ? '#fff' : '#4f46e5') : theme.tabText, 
+                            color: isActive ? (theme.headerBg === 'white' ? '#4f46e5' : 'white') : theme.tabText, 
                             fontWeight: isActive ? '700' : '500' 
                         }
                     ]}>
@@ -98,7 +82,11 @@ export default function AdminScreen() {
           
           {/* VIEW 1: Dashboard */}
           {activeTab === 'dashboard' && !showForm ? (
-            <AdminDashboard stats={getStats()} theme={theme} />
+            <AdminDashboard 
+                stats={getStats()} 
+                theme={theme} 
+                childrenList={childrenList} 
+            />
           
           // VIEW 2: Lister
           ) : !showForm ? (
@@ -110,7 +98,7 @@ export default function AdminScreen() {
               </View>
 
               <FlatList
-                style={{ flex: 1 }} // <--- VIKTIG FOR WEB SCROLLING
+                style={{ flex: 1 }}
                 data={activeTab === 'child' ? childrenList : activeTab === 'employee' ? employeeList : departmentList}
                 renderItem={({ item }) => activeTab === 'department' ? (
                     <DepartmentItem item={item} theme={theme} onEdit={handleEdit} onDelete={handleDelete} childrenList={childrenList} employeeList={employeeList} />
@@ -184,8 +172,8 @@ export default function AdminScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { paddingHorizontal: 20, paddingBottom: 20, paddingTop: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: 'white', letterSpacing: 0.5 },
-  headerSubtitle: { color: '#94a3b8', fontSize: 13, fontWeight: '500' },
+  headerTitle: { fontSize: 22, fontWeight: '800', letterSpacing: 0.5 },
+  headerSubtitle: { fontSize: 13, fontWeight: '500' },
   logoutButton: { padding: 10, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 12 },
   
   contentContainer: { flex: 1, borderTopLeftRadius: 30, borderTopRightRadius: 30, overflow: 'hidden' },
