@@ -34,22 +34,20 @@ export default function ParentScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.headerBg }]} edges={['top', 'left', 'right']}>
       <StatusBar style="light" /> 
       
-      {/* Header */}
       <View style={[styles.header, { backgroundColor: theme.headerBg, borderBottomColor: theme.borderColor }]}>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>{t('headerTitle')}</Text>
+        <Text style={[styles.headerTitle, { color: theme.headerText }]}>{t('headerTitle')}</Text>
         <View style={{flexDirection: 'row', gap: 15}}>
             <TouchableOpacity onPress={() => setShowSettings(true)}>
-                <Ionicons name="settings-outline" size={24} color={theme.text} />
+                <Ionicons name="settings-outline" size={24} color={theme.headerText} />
             </TouchableOpacity>
 
             <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
-                <Text style={{marginRight:5, color: theme.text, fontWeight:'500'}}>{t('logout')}</Text>
-                <Ionicons name="log-out-outline" size={24} color={theme.text} />
+                <Text style={{marginRight:5, color: theme.headerText, fontWeight:'500'}}>{t('logout')}</Text>
+                <Ionicons name="log-out-outline" size={24} color={theme.headerText} />
             </TouchableOpacity>
         </View>
       </View>
 
-      {/* Hovedinnhold */}
       <View style={[styles.mainContent, { backgroundColor: theme.background }]}>
         <FlatList 
             data={children}
@@ -84,7 +82,6 @@ export default function ParentScreen() {
         />
       </View>
 
-      {/* Modaler */}
       <SendMessageModal 
         visible={msgModalVisible}
         theme={theme}

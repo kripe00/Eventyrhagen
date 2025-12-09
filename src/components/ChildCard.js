@@ -1,16 +1,17 @@
 import { Image, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 
-export const ChildCard = ({ item, onPress }) => {
-  // 1. Hent nåværende fargetema
+
+export const ChildCard = ({ item, onPress, t }) => {
   const isDark = useColorScheme() === 'dark';
+
+  const translate = (key, fallback) => (t ? t(key) : fallback);
 
   return (
     <TouchableOpacity 
       style={[
         styles.card,
-        isDark && styles.cardDark, // Mørk bakgrunn
+        isDark && styles.cardDark,
         item.status === 'home' && !item.isSick && styles.dimmed, 
-        // Håndter lys/mørk variant av "Syk"-kort
         item.isSick && (isDark ? styles.sickCardDark : styles.sickCard)
       ]} 
       onPress={() => onPress(item)}
@@ -27,7 +28,10 @@ export const ChildCard = ({ item, onPress }) => {
       )}
 
       {item.isSick && (
-        <View style={styles.sickBadge}><Text style={styles.sickText}>SYK</Text></View>
+        <View style={styles.sickBadge}>
+            
+            <Text style={styles.sickText}>{translate('sickShort', 'SYK')}</Text>
+        </View>
       )}
       
       {item.status === 'present' && (
@@ -36,8 +40,7 @@ export const ChildCard = ({ item, onPress }) => {
       
       <Text style={[
         styles.name, 
-        isDark && styles.textLight, // Lys tekst som standard i darkmode
-        // Juster farge for syke barn (Lys rød i darkmode, mørk rød i lightmode)
+        isDark && styles.textLight, 
         item.isSick && {color: isDark ? '#fca5a5' : '#991b1b'} 
       ]}>
         {item.name}
@@ -47,7 +50,8 @@ export const ChildCard = ({ item, onPress }) => {
       
       {item.status === 'present' && item.checkInTime && (
           <Text style={[styles.timeText, isDark && styles.timeTextDark]}>
-            Inn: {item.checkInTime}
+            
+            {translate('checkIn', 'Inn')}: {item.checkInTime}
           </Text>
       )}
     </TouchableOpacity>
@@ -55,7 +59,7 @@ export const ChildCard = ({ item, onPress }) => {
 };
 
 const styles = StyleSheet.create({
-  // --- GRUNNOPPSETT (LIGHT MODE) ---
+  
   card: { flex: 1, margin: 6, backgroundColor: 'white', borderRadius: 12, padding: 12, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
   dimmed: { opacity: 0.5 },
   sickCard: { backgroundColor: '#fef2f2', borderColor: '#fecaca', borderWidth: 1 },
@@ -72,29 +76,29 @@ const styles = StyleSheet.create({
   info: { fontSize: 10, color: '#6b7280' },
   timeText: { fontSize: 10, color: '#15803d', fontWeight: 'bold', marginTop: 4 },
 
-  // --- DARK MODE TILPASNINGER ---
+  
   cardDark: {
-    backgroundColor: '#1f2937', // Mørk grå (Slate-800)
-    shadowOpacity: 0.3, // Litt sterkere skygge for å skille fra svart bakgrunn
+    backgroundColor: '#1f2937', 
+    shadowOpacity: 0.3, 
   },
   sickCardDark: {
-    backgroundColor: '#450a0a', // Veldig mørk rød
-    borderColor: '#7f1d1d',     // Mørkere rød kant
+    backgroundColor: '#450a0a', 
+    borderColor: '#7f1d1d',     
     borderWidth: 1,
   },
   imageDark: {
-    backgroundColor: '#374151', // Mørkere placeholder bak bilde
+    backgroundColor: '#374151', 
   },
   textLight: {
-    color: '#f3f4f6', // Nesten hvit
+    color: '#f3f4f6', 
   },
   infoDark: {
-    color: '#9ca3af', // Lysere grå for sekundær tekst
+    color: '#9ca3af', 
   },
   timeTextDark: {
-    color: '#4ade80', // Lysere grønn (lettere å lese på mørk bakgrunn)
+    color: '#4ade80', 
   },
   badgeBorderDark: {
-    borderColor: '#1f2937', // Må matche cardDark bakgrunnsfargen for å se "usynlig" ut
+    borderColor: '#1f2937', 
   }
 });

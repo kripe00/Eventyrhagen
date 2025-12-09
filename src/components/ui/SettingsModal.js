@@ -6,9 +6,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useTheme } from '../../context/ThemeContext';
 import { AppButton } from './AppButton';
 import { AppInput } from './AppInput';
-
-
-import { LANGUAGE_OPTIONS } from '../../utils/uiTranslations';
+import { LANGUAGE_OPTIONS } from '../../utils/translationService';
 
 export const SettingsModal = ({ visible, onClose }) => {
   const { user, updateUserEmail } = useAuth();
@@ -45,7 +43,6 @@ export const SettingsModal = ({ visible, onClose }) => {
 
           <ScrollView showsVerticalScrollIndicator={false}>
             
-            
             <View style={[styles.row, { borderBottomColor: theme.borderColor }]}>
                 <View style={{flexDirection: 'row', alignItems: 'center'}}>
                     <Ionicons name="moon-outline" size={20} color={theme.text} style={{marginRight: 10}} />
@@ -58,7 +55,6 @@ export const SettingsModal = ({ visible, onClose }) => {
                 />
             </View>
 
-           
             <View style={[styles.section, { borderBottomColor: theme.borderColor, borderBottomWidth: 1, paddingBottom: 15 }]}>
                 <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 10}}>
                     <Ionicons name="language-outline" size={20} color={theme.text} style={{marginRight: 10}} />
@@ -66,30 +62,34 @@ export const SettingsModal = ({ visible, onClose }) => {
                 </View>
                 
                 <View style={styles.langGrid}>
-                    {LANGUAGE_OPTIONS.map((opt) => (
-                        <TouchableOpacity 
-                            key={opt.code} 
-                            onPress={() => setLanguage(opt.code)}
-                            style={[
-                                styles.langBtn, 
-                                { 
-                                    backgroundColor: language === opt.code ? theme.tabActive : 'transparent',
-                                    borderColor: theme.borderColor 
-                                }
-                            ]}
-                        >
-                            <Text style={{
-                                color: theme.text, 
-                                fontWeight: language === opt.code ? 'bold' : 'normal'
-                            }}>
-                                {opt.label}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
+                    {LANGUAGE_OPTIONS.map((opt) => {
+                        const isSelected = language === opt.code;
+                        return (
+                            <TouchableOpacity 
+                                key={opt.code} 
+                                onPress={() => setLanguage(opt.code)}
+                                style={[
+                                    styles.langBtn, 
+                                    { 
+                                       
+                                        backgroundColor: isSelected ? theme.tabActive : 'transparent',
+                                        borderColor: isSelected ? theme.tabActive : theme.borderColor 
+                                    }
+                                ]}
+                            >
+                                <Text style={{
+                                
+                                    color: isSelected ? (mode === 'light' ? '#4f46e5' : '#ffffff') : theme.text, 
+                                    fontWeight: isSelected ? 'bold' : 'normal'
+                                }}>
+                                    {opt.label}
+                                </Text>
+                            </TouchableOpacity>
+                        );
+                    })}
                 </View>
             </View>
 
-            
             <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: theme.subText }]}>Brukerkonto</Text>
                 <AppInput 
@@ -124,8 +124,6 @@ const styles = StyleSheet.create({
   label: { fontSize: 16 },
   section: { marginTop: 20 },
   sectionTitle: { fontSize: 12, fontWeight: 'bold', marginBottom: 10, textTransform: 'uppercase' },
-  
-
   langGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   langBtn: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, minWidth: '30%', alignItems: 'center', justifyContent: 'center' }
 });

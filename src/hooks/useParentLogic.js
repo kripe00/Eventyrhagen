@@ -1,19 +1,19 @@
-import {
-    addDoc,
-    arrayUnion,
-    collection,
-    doc,
-    onSnapshot,
-    orderBy,
-    query,
-    Timestamp,
-    updateDoc,
-    where
+import { useState, useEffect } from 'react';
+import { 
+  collection, 
+  query, 
+  where, 
+  onSnapshot, 
+  orderBy, 
+  addDoc, 
+  doc, 
+  updateDoc, 
+  arrayUnion, 
+  Timestamp,
+  limit
 } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
-// --- HER VAR FEILEN, NÅ ER DEN RETTET: ---
+import { db, auth } from '../config/firebaseconfig';
 import { signOut } from 'firebase/auth';
-import { auth, db } from '../config/firebaseconfig';
 
 export const useParentLogic = () => {
   const [children, setChildren] = useState([]);
@@ -26,7 +26,7 @@ export const useParentLogic = () => {
   const [msgContent, setMsgContent] = useState('');
   const [selectedChild, setSelectedChild] = useState(null);
 
-  // 1. Sjekk bruker og lytt til Auth
+  
   useEffect(() => {
     const unsubscribeAuth = auth.onAuthStateChanged((currentUser) => {
       setUser(currentUser);
@@ -39,11 +39,10 @@ export const useParentLogic = () => {
     return unsubscribeAuth;
   }, []);
 
-  // 2. Hent barn og meldinger når bruker er logget inn
+  //  Hent barn og meldinger
   useEffect(() => {
     if (!user) return;
 
-    // Hent barn koblet til forelderen
     const qChildren = query(
         collection(db, 'children'), 
         where('guardianEmails', 'array-contains', user.email)
@@ -53,22 +52,21 @@ export const useParentLogic = () => {
       const childList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setChildren(childList);
       
-      // Når vi har barna, kan vi hente meldinger for deres avdelinger
       if (childList.length > 0) {
-          const avdelinger = [...new Set(childList.map(c => c.avdeling))]; // Unike avdelinger
+          const avdelinger = [...new Set(childList.map(c => c.avdeling))];
           
-          // Merk: 'in'-spørringer i Firestore støtter maks 10 verdier
+          // Hent meldinger for avdelingene + 'alle'
           const qMessages = query(
               collection(db, 'messages'),
-              where('author', 'in', ['alle', ...avdelinger]), // Endret fra 'target' til 'author' basert på din EmployeeLogic
-              orderBy('createdAt', 'desc')
+              where('author', 'in', ['alle', ...avdelinger]),
+              orderBy('createdAt', 'desc'),
+              limit(20) // Begrens til siste 20 for ytelse
           );
 
           const unsubMessages = onSnapshot(qMessages, (msgSnap) => {
               const msgs = msgSnap.docs.map(d => ({ 
                   id: d.id, 
                   ...d.data(),
-                  // Konverter Timestamp til lesbar string hvis nødvendig
                   date: d.data().createdAt?.toDate ? d.data().createdAt.toDate().toLocaleDateString('no-NO') : ''
               }));
               setMessages(msgs);
@@ -87,16 +85,11 @@ export const useParentLogic = () => {
   // --- Handlers ---
 
   const logout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
+    try { await signOut(auth); } catch (e) { console.error(e); }
   };
 
   const handleSendMessage = async () => {
     if (!msgContent.trim() || !selectedChild) return;
-
     try {
       await addDoc(collection(db, 'departmentMessages'), {
         content: msgContent,
@@ -107,71 +100,38 @@ export const useParentLogic = () => {
         createdAt: Timestamp.now(),
         read: false
       });
-
       setMsgModalVisible(false);
       setMsgContent('');
       alert('Melding sendt!');
-    } catch (error) {
-      console.error("Error sending message:", error);
-      alert('Noe gikk galt ved sending av melding.');
-    }
+    } catch (e) { alert('Noe gikk galt.'); }
   };
 
   const toggleStatus = async (child) => {
-    // Hvis barnet er sykt, må vi først friskmelde (fjerne isSick)
-    if (child.isSick) {
-        try {
-            await updateDoc(doc(db, 'children', child.id), {
-                isSick: false,
-                status: 'home' // Setter til hjemme når friskmeldt
-            });
-        } catch (error) {
-            console.error("Kunne ikke friskmelde:", error);
-        }
-        return;
-    }
-
-    // Vanlig Sjekk inn / Sjekk ut
-    const newStatus = child.status === 'home' ? 'present' : 'home';
     try {
-        const updates = { status: newStatus };
-        if (newStatus === 'present') {
-            const now = new Date();
-            updates.checkInTime = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+        if (child.isSick) {
+            await updateDoc(doc(db, 'children', child.id), { isSick: false, status: 'home' });
         } else {
-            updates.checkInTime = null;
+            const newStatus = child.status === 'home' ? 'present' : 'home';
+            const updates = { status: newStatus };
+            if (newStatus === 'present') {
+                const now = new Date();
+                updates.checkInTime = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+            } else { updates.checkInTime = null; }
+            await updateDoc(doc(db, 'children', child.id), updates);
         }
-        await updateDoc(doc(db, 'children', child.id), updates);
-    } catch (error) {
-        console.error("Error updating status:", error);
-    }
+    } catch (e) { console.error(e); }
   };
 
   const reportSickness = async (child) => {
       try {
-          await updateDoc(doc(db, 'children', child.id), {
-              isSick: true,
-              status: 'home', // Syke barn er hjemme
-              checkInTime: null
-          });
-      } catch (error) {
-          console.error("Error reporting sickness:", error);
-      }
+          await updateDoc(doc(db, 'children', child.id), { isSick: true, status: 'home', checkInTime: null });
+      } catch (e) { console.error(e); }
   };
 
-  // --- READ-FUNKSJON ---
+  // --- MARKER SOM LEST ---
   const markMessageAsRead = async (messageId) => {
     if (!user?.email) return;
-
-    // 1. Oppdater UI lokalt med en gang
-    setMessages(currentMessages => 
-        currentMessages.map(msg => 
-            msg.id === messageId 
-            ? { ...msg, readBy: [...(msg.readBy || []), user.email] }
-            : msg
-        )
-    );
-
+    
     try {
         const messageRef = doc(db, 'messages', messageId);
         await updateDoc(messageRef, {
@@ -183,17 +143,11 @@ export const useParentLogic = () => {
   };
 
   return {
-    children,
-    messages,
-    loading,
-    logout,
-    user,
+    children, messages, loading, logout, user,
     msgModalVisible, setMsgModalVisible,
     msgContent, setMsgContent,
     selectedChild, setSelectedChild,
-    handleSendMessage,
-    toggleStatus,
-    reportSickness,
+    handleSendMessage, toggleStatus, reportSickness,
     markMessageAsRead 
   };
 };

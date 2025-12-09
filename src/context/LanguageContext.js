@@ -1,10 +1,10 @@
-import { createContext, useContext, useState } from 'react';
-import { t as translateFunc } from '../utils/uiTranslations';
+import React, { createContext, useContext, useState } from 'react';
+import { t as translateFunc } from '../utils/translationService'; // Henter gruppens funksjon
 
 const LanguageContext = createContext();
 
 export const LanguageProvider = ({ children }) => {
-  
+  // Standard språk er norsk ('no')
   const [language, setLanguage] = useState('no');
 
   
