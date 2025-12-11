@@ -1,11 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState, useEffect } from 'react'; 
-import { Image, KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, TouchableOpacity, View, TextInput } from 'react-native';
-import { useLanguage } from '../../context/LanguageContext'; 
+import { useEffect, useState } from 'react';
+import { Image, KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useLanguage } from '../../context/LanguageContext';
 
-import { translateText, t } from '../../utils/translationService'; 
-import { AppInput } from '../ui/AppInput';   
-import { AppButton } from '../ui/AppButton'; 
+import { t, translateText } from '../../utils/translationService';
+import { AppButton } from '../ui/AppButton';
+import { AppInput } from '../ui/AppInput';
 
 const styles = StyleSheet.create({
   messageContainer: { marginBottom: 20 },
@@ -42,56 +42,39 @@ const styles = StyleSheet.create({
   modalHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }
 });
 
-// --- MESSAGES SECTION ---
-export const MessagesSection = ({ messages, theme, currentUser, onMarkAsRead }) => {
-    // Hent språk fra context
+// --- MESSAGES SECTION  ---
+export const MessagesSection = ({ messages, theme, currentUser, onMarkAsRead, onDelete }) => {
     const { language } = useLanguage(); 
-    
     const [expanded, setExpanded] = useState(false);
-    
-    // State for å lagre de oversatte meldingene
     const [translatedMessages, setTranslatedMessages] = useState([]);
 
-    // --- OVERSETTELSES-MOTOR ---
     useEffect(() => {
         const performTranslation = async () => {
-            // Hvis norsk: Bruk originaltekst direkte (sparer API-kall)
             if (language === 'no') {
                 setTranslatedMessages(messages);
                 return;
             }
-
-            // Hvis annet språk: Gå gjennom alle meldinger og oversett tittel + innhold
             const translated = await Promise.all(messages.map(async (msg) => {
-                // Her kaller vi API-et
                 const newTitle = await translateText(msg.title, language);
                 const newContent = await translateText(msg.content, language);
-                
                 return {
                     ...msg,
                     title: newTitle.text || msg.title,    
                     content: newContent.text || msg.content
                 };
             }));
-
             setTranslatedMessages(translated);
         };
-
         performTranslation();
     }, [messages, language]); 
 
     if (!messages || messages.length === 0) return null;
 
-    // Bruk den oversatte listen til visning
     const displayList = translatedMessages.length > 0 ? translatedMessages : messages;
-
-    // Sortering (Uleste først)
     const sortedMessages = [...displayList].sort((a, b) => {
         const aRead = a.readBy?.includes(currentUser?.email);
         const bRead = b.readBy?.includes(currentUser?.email);
-        if (!!aRead !== !!bRead) {
-            return aRead ? 1 : -1;
-        }
+        if (!!aRead !== !!bRead) return aRead ? 1 : -1;
         return 0;
     });
 
@@ -141,7 +124,6 @@ export const MessagesSection = ({ messages, theme, currentUser, onMarkAsRead }) 
                         color={isRead ? theme.subText : "#d97706"} 
                         style={{marginRight: 8}} 
                     />
-                    {/* Her vises nå den oversatte tittelen */}
                     <Text style={[styles.msgTitle, { color: isRead ? theme.subText : theme.messageTitle }]}>
                         {msg.title}
                     </Text>
@@ -154,17 +136,25 @@ export const MessagesSection = ({ messages, theme, currentUser, onMarkAsRead }) 
                   )}
                </View>
 
-              {/* Her vises nå det oversatte innholdet */}
               <Text style={[styles.msgContent, { color: theme.messageContent }]}>{msg.content}</Text>
                
               <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'flex-end'}}>
-                   {!isRead ? (
-                       <TouchableOpacity onPress={() => onMarkAsRead(msg.id)} style={styles.markReadBtn}>
-                           <Text style={styles.markReadText}>{t(language, 'markRead')}</Text>
+                   <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                       {!isRead ? (
+                           <TouchableOpacity onPress={() => onMarkAsRead(msg.id)} style={styles.markReadBtn}>
+                               <Text style={styles.markReadText}>{t(language, 'markRead')}</Text>
+                           </TouchableOpacity>
+                       ) : (
+                          
+                           <View style={{height: 30}} /> 
+                       )}
+
+                       {/* HER ER SLETTEKNAPPEN */}
+                       <TouchableOpacity onPress={() => onDelete(msg.id)} style={{marginLeft: 15, padding: 5}}>
+                            <Ionicons name="trash-outline" size={20} color="#ef4444" />
                        </TouchableOpacity>
-                   ) : (
-                       <View style={{height: 30}} /> 
-                   )}
+                   </View>
+                   
                    {msg.date && <Text style={styles.msgDate}>{msg.date}</Text>}
               </View>
              </View>
@@ -174,7 +164,7 @@ export const MessagesSection = ({ messages, theme, currentUser, onMarkAsRead }) 
     );
 };
 
-// --- CHILD CARD ---
+// --- CHILD CARD  ---
 export const ChildCard = ({ item, theme, onToggleStatus, onReportSickness, onOpenMessageModal }) => {
     const { language } = useLanguage(); 
 

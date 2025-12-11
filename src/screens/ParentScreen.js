@@ -15,13 +15,14 @@ export default function ParentScreen() {
   const { t } = useLanguage();
   const [showSettings, setShowSettings] = useState(false);
 
+  // 1. Hent deleteMessage herifra
   const {
     children, messages, loading, logout, user,
     msgModalVisible, setMsgModalVisible,
     msgContent, setMsgContent,
     selectedChild, setSelectedChild,
     handleSendMessage, toggleStatus, reportSickness,
-    markMessageAsRead
+    markMessageAsRead, deleteMessage 
   } = useParentLogic();
 
   if (loading) return (
@@ -64,11 +65,13 @@ export default function ParentScreen() {
             contentContainerStyle={{padding: 20}}
             ListHeaderComponent={
                 <>
+                    {/* 2. Send onDelete prop videre her */}
                     <MessagesSection 
                         messages={messages} 
                         theme={theme} 
                         currentUser={user}
                         onMarkAsRead={markMessageAsRead}
+                        onDelete={deleteMessage} 
                     />
                     
                     {children.length === 0 && (

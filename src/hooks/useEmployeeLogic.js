@@ -1,4 +1,4 @@
-import { addDoc, collection, doc, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
+import { addDoc, collection, doc, onSnapshot, query, updateDoc, where, setDoc, Timestamp } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import { db } from '../config/firebaseconfig';
@@ -29,7 +29,7 @@ export const useEmployeeLogic = () => {
     return unsubscribe;
   }, [userData]);
 
-  //  Hent innboks
+  // Hent innboks
   useEffect(() => {
       if (!userData?.department) return;
       const q = query(
@@ -45,20 +45,49 @@ export const useEmployeeLogic = () => {
       return unsubscribe;
   }, [userData]);
 
-  // Handlers
+  // --- SJEKK INN/UT MED LOGG  ---
   const toggleCheckIn = async (child) => {
     try {
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+        const dateStr = now.toISOString().split('T')[0];
+
         const childRef = doc(db, "children", child.id);
-        const newStatus = child.status === 'home' ? 'present' : 'home';
-        const updates = { 
-            status: newStatus, 
-            checkInTime: newStatus === 'present' 
-            ? `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}` 
-            : null 
-        };
-        await updateDoc(childRef, updates);
+        const logId = `${child.id}_${dateStr}`;
+        const logRef = doc(db, "attendance_logs", logId);
+
+        if (child.status === 'home') {
+            // SJEKK INN
+            await updateDoc(childRef, { 
+                status: 'present', 
+                checkInTime: timeStr 
+            });
+
+            await setDoc(logRef, {
+                childId: child.id,
+                childName: child.name,
+                avdeling: child.avdeling,
+                date: dateStr,
+                checkIn: timeStr,
+                createdAt: Timestamp.now()
+            }, { merge: true });
+
+        } else {
+            // SJEKK UT
+            await updateDoc(childRef, { 
+                status: 'home', 
+                checkInTime: null 
+            });
+
+            await setDoc(logRef, {
+                checkOut: timeStr
+            }, { merge: true });
+        }
         setSelectedChild(null);
-    } catch (e) { Alert.alert("Feil", "Kunne ikke endre status."); }
+    } catch (e) { 
+        console.error(e);
+        Alert.alert("Feil", "Kunne ikke endre status."); 
+    }
   };
 
   const handlePublishMessage = async () => {
@@ -73,13 +102,17 @@ export const useEmployeeLogic = () => {
               title: msgTitle, content: msgContent, date: dateStr,
               author: departmentName, createdAt: new Date() 
           });
+          
           Alert.alert("Suksess", `Beskjed sendt fra ${departmentName}!`);
           setMsgTitle(''); setMsgContent(''); setMsgModalVisible(false);
-      } catch (error) { Alert.alert("Feil", error.message); } 
-      finally { setLoading(false); }
+      } catch (error) { 
+          Alert.alert("Feil", error.message); 
+      } finally { 
+          setLoading(false); 
+      }
   };
 
-  // --- FILTRERING OG TELLING ---
+  // Filtrering og telling
   const filteredChildren = children.filter(c => {
     if (filter === 'present') return c.status === 'present';
     if (filter === 'home') return c.status === 'home';

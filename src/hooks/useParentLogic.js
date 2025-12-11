@@ -10,10 +10,11 @@ import {
   updateDoc, 
   arrayUnion, 
   Timestamp,
-  limit
+  limit,
+  setDoc
 } from 'firebase/firestore';
-import { db, auth } from '../config/firebaseconfig';
 import { signOut } from 'firebase/auth';
+import { db, auth } from '../config/firebaseconfig';
 
 export const useParentLogic = () => {
   const [children, setChildren] = useState([]);
@@ -26,7 +27,7 @@ export const useParentLogic = () => {
   const [msgContent, setMsgContent] = useState('');
   const [selectedChild, setSelectedChild] = useState(null);
 
-  
+  // Auth listener
   useEffect(() => {
     const unsubscribeAuth = auth.onAuthStateChanged((currentUser) => {
       setUser(currentUser);
@@ -39,7 +40,7 @@ export const useParentLogic = () => {
     return unsubscribeAuth;
   }, []);
 
-  //  Hent barn og meldinger
+  // Hent data (Barn og Meldinger)
   useEffect(() => {
     if (!user) return;
 
@@ -55,20 +56,23 @@ export const useParentLogic = () => {
       if (childList.length > 0) {
           const avdelinger = [...new Set(childList.map(c => c.avdeling))];
           
-          // Hent meldinger for avdelingene + 'alle'
           const qMessages = query(
               collection(db, 'messages'),
               where('author', 'in', ['alle', ...avdelinger]),
               orderBy('createdAt', 'desc'),
-              limit(20) // Begrens til siste 20 for ytelse
+              limit(20) 
           );
 
           const unsubMessages = onSnapshot(qMessages, (msgSnap) => {
-              const msgs = msgSnap.docs.map(d => ({ 
-                  id: d.id, 
-                  ...d.data(),
-                  date: d.data().createdAt?.toDate ? d.data().createdAt.toDate().toLocaleDateString('no-NO') : ''
-              }));
+              const msgs = msgSnap.docs
+                .map(d => ({ 
+                    id: d.id, 
+                    ...d.data(),
+                    date: d.data().createdAt?.toDate ? d.data().createdAt.toDate().toLocaleDateString('no-NO') : ''
+                }))
+                // Filtrer bort meldinger brukeren har slettet
+                .filter(msg => !msg.deletedBy?.includes(user.email));
+
               setMessages(msgs);
               setLoading(false);
           });
@@ -110,14 +114,30 @@ export const useParentLogic = () => {
     try {
         if (child.isSick) {
             await updateDoc(doc(db, 'children', child.id), { isSick: false, status: 'home' });
+            return;
+        }
+
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+        const dateStr = now.toISOString().split('T')[0];
+
+        const childRef = doc(db, "children", child.id);
+        const logId = `${child.id}_${dateStr}`;
+        const logRef = doc(db, "attendance_logs", logId);
+
+        if (child.status === 'home') {
+            await updateDoc(childRef, { status: 'present', checkInTime: timeStr });
+            await setDoc(logRef, {
+                childId: child.id,
+                childName: child.name,
+                avdeling: child.avdeling,
+                date: dateStr,
+                checkIn: timeStr,
+                createdAt: Timestamp.now()
+            }, { merge: true });
         } else {
-            const newStatus = child.status === 'home' ? 'present' : 'home';
-            const updates = { status: newStatus };
-            if (newStatus === 'present') {
-                const now = new Date();
-                updates.checkInTime = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
-            } else { updates.checkInTime = null; }
-            await updateDoc(doc(db, 'children', child.id), updates);
+            await updateDoc(childRef, { status: 'home', checkInTime: null });
+            await setDoc(logRef, { checkOut: timeStr }, { merge: true });
         }
     } catch (e) { console.error(e); }
   };
@@ -128,17 +148,24 @@ export const useParentLogic = () => {
       } catch (e) { console.error(e); }
   };
 
-  // --- MARKER SOM LEST ---
   const markMessageAsRead = async (messageId) => {
     if (!user?.email) return;
-    
+    try {
+        const messageRef = doc(db, 'messages', messageId);
+        await updateDoc(messageRef, { readBy: arrayUnion(user.email) });
+    } catch (error) { console.error("Feil ved markering av lest:", error); }
+  };
+
+  // --- SLETT MELDING (Skjul for meg) ---
+  const deleteMessage = async (messageId) => {
+    if (!user?.email) return;
     try {
         const messageRef = doc(db, 'messages', messageId);
         await updateDoc(messageRef, {
-            readBy: arrayUnion(user.email)
+            deletedBy: arrayUnion(user.email)
         });
     } catch (error) {
-        console.error("Feil ved markering av lest:", error);
+        console.error("Feil ved sletting:", error);
     }
   };
 
@@ -148,6 +175,7 @@ export const useParentLogic = () => {
     msgContent, setMsgContent,
     selectedChild, setSelectedChild,
     handleSendMessage, toggleStatus, reportSickness,
-    markMessageAsRead 
+    markMessageAsRead,
+    deleteMessage 
   };
 };
