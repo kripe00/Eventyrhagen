@@ -1,11 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../../context/Authcontext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useTheme } from '../../context/ThemeContext';
-import { AppButton } from './AppButton';
-import { AppInput } from './AppInput';
 import { LANGUAGE_OPTIONS } from '../../utils/translationService';
 
 export const SettingsModal = ({ visible, onClose }) => {
@@ -13,21 +10,9 @@ export const SettingsModal = ({ visible, onClose }) => {
   const { theme, mode, toggleTheme } = useTheme();
   const { language, setLanguage } = useLanguage(); 
   
-  const [newEmail, setNewEmail] = useState(user?.email || '');
-  const [loading, setLoading] = useState(false);
 
-  const handleSaveEmail = async () => {
-    if (!newEmail.includes('@')) { Alert.alert("Feil", "Ugyldig e-post"); return; }
-    setLoading(true);
-    try {
-        await updateUserEmail(newEmail);
-        Alert.alert("Suksess", "E-post oppdatert!", [{ text: "OK", onPress: onClose }]);
-    } catch (error) {
-        Alert.alert("Feil", error.message);
-    } finally {
-        setLoading(false);
-    }
-  };
+
+
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -89,25 +74,6 @@ export const SettingsModal = ({ visible, onClose }) => {
                     })}
                 </View>
             </View>
-
-            <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: theme.subText }]}>Brukerkonto</Text>
-                <AppInput 
-                    label="Endre E-post"
-                    value={newEmail}
-                    onChangeText={setNewEmail}
-                    placeholder="ny@epost.no"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                />
-                <AppButton 
-                    title="Lagre Endringer" 
-                    onPress={handleSaveEmail} 
-                    loading={loading}
-                    style={{marginTop: 5}} 
-                />
-            </View>
-
           </ScrollView>
         </View>
       </KeyboardAvoidingView>

@@ -33,10 +33,10 @@ const styles = StyleSheet.create({
     minHeight: 50,
   },
   primary: {
-    backgroundColor: '#4f46e5', // Din standard lilla/blå
+    backgroundColor: '#4f46e5',
   },
   destructive: {
-    backgroundColor: '#ef4444', // Rød for sletting/avbryt
+    backgroundColor: '#ef4444', 
   },
   text: {
     color: 'white',

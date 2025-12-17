@@ -1,14 +1,9 @@
-import React from 'react';
-import { View, Text, TextInput, StyleSheet, useColorScheme } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { useTheme } from '../../context/ThemeContext';
 
-const Colors = {
-  light: { inputBg: '#f9fafb', text: '#1f2937', borderColor: '#e5e7eb', placeholder: '#6b7280' },
-  dark: { inputBg: '#374151', text: '#f3f4f6', borderColor: '#4b5563', placeholder: '#9ca3af' }
-};
-
-export const AppInput = ({ label, value, onChangeText, placeholder, keyboardType, secureTextEntry, autoCapitalize, multiline, style }) => {
-  const scheme = useColorScheme();
-  const theme = Colors[scheme] || Colors.light;
+export const AppInput = ({ label, value, onChangeText, placeholder, keyboardType, secureTextEntry, autoCapitalize, multiline, style, theme: propsTheme }) => {
+  const { theme: contextTheme } = useTheme();
+  const theme = propsTheme || contextTheme;
 
   return (
     <View style={[styles.container, style]}>

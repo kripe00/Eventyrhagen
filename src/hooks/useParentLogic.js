@@ -70,7 +70,6 @@ export const useParentLogic = () => {
                     ...d.data(),
                     date: d.data().createdAt?.toDate ? d.data().createdAt.toDate().toLocaleDateString('no-NO') : ''
                 }))
-                // Filtrer bort meldinger brukeren har slettet
                 .filter(msg => !msg.deletedBy?.includes(user.email));
 
               setMessages(msgs);

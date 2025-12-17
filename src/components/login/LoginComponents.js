@@ -3,8 +3,8 @@ import {
     View, Text, TouchableOpacity, StyleSheet, 
     Platform, TouchableWithoutFeedback, Keyboard 
 } from 'react-native';
-import { AppInput } from '../ui/AppInput';   // <--- Gjenbruk
-import { AppButton } from '../ui/AppButton'; // <--- Gjenbruk
+import { AppInput } from '../ui/AppInput';  
+import { AppButton } from '../ui/AppButton';
 
 const styles = StyleSheet.create({
   card: { 
@@ -17,7 +17,6 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 8 },
   subtitle: { textAlign: 'center', marginBottom: 24 },
-  // 'input', 'label', 'button' styles er nå fjernet herfra fordi de ligger i ui-komponentene!
   switchButton: { marginTop: 20, alignItems: 'center', padding: 10 },
   switchText: { fontWeight: '600' }
 });
@@ -63,7 +62,7 @@ export const LoginCard = ({
                 title={isLoginMode ? 'Logg Inn' : 'Opprett Bruker'}
                 onPress={onAuthAction}
                 loading={loading}
-                style={{ marginTop: 10 }} // Litt ekstra luft over knappen
+                style={{ marginTop: 10 }} 
             />
 
             <TouchableOpacity style={styles.switchButton} onPress={() => setIsLoginMode(!isLoginMode)}>

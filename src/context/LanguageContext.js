@@ -4,7 +4,6 @@ import { t as translateFunc } from '../utils/translationService'; // Henter grup
 const LanguageContext = createContext();
 
 export const LanguageProvider = ({ children }) => {
-  // Standard språk er norsk ('no')
   const [language, setLanguage] = useState('no');
 
   

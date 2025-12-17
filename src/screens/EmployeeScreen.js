@@ -26,6 +26,21 @@ const Colors = {
 export default function EmployeeScreen() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme] || Colors.light;
+  const localColors = {
+    light: {
+      background: '#f3f4f6', card: 'white', text: '#1f2937', subText: '#6b7280',
+      modalBg: 'white', inputBg: '#f3f4f6', borderColor: '#e5e7eb',
+      filterChip: '#f3f4f6', filterText: '#6b7280', headerBg: '#312e81'
+    },
+    dark: {
+      background: '#111827', card: '#1f2937', text: '#f3f4f6', subText: '#9ca3af',
+      modalBg: '#1f2937', inputBg: '#374151', borderColor: '#374151',
+      filterChip: '#374151', filterText: '#d1d5db', headerBg: '#1e1b4b' 
+    }
+  };
+
+  const localColorScheme = useColorScheme();
+  const localTheme = localColors[localColorScheme] || localColors.light;
 
   const {
     children, allChildrenCount, presentCount, sickCount, 

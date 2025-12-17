@@ -1,8 +1,7 @@
-import React from 'react';
-import { FlatList, KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { AppInput } from '../ui/AppInput';   
-import { AppButton } from '../ui/AppButton'; 
+import { FlatList, KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { AppButton } from '../ui/AppButton';
+import { AppInput } from '../ui/AppInput';
 
 
 const styles = StyleSheet.create({
@@ -96,7 +95,7 @@ export const FilterBar = ({ theme, filter, setFilter, sickCount }) => (
   </View>
 );
 
-// 3. CHECK-IN MODAL 
+// CHECK-IN MODAL 
 export const CheckInModal = ({ theme, visible, child, onClose, onToggle }) => (
   <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
@@ -128,14 +127,14 @@ export const CheckInModal = ({ theme, visible, child, onClose, onToggle }) => (
   </Modal>
 );
 
-// 4. MESSAGE MODAL
+//  MESSAGE MODAL
 export const MessageModal = ({ theme, visible, loading, title, setTitle, content, setContent, onClose, onPublish }) => (
   <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
           <View style={[styles.modalContent, {width: '90%', backgroundColor: theme.card, borderColor: theme.borderColor }]}>
               <Text style={[styles.modalTitle, { color: theme.text }]}>Ny fellesbeskjed</Text>
-              <AppInput label="Tittel" value={title} onChangeText={setTitle} />
-              <AppInput label="Innhold" value={content} onChangeText={setContent} multiline placeholder="Skriv melding her..."/>
+              <AppInput label="Tittel" value={title} onChangeText={setTitle} theme={theme} />
+              <AppInput label="Innhold" value={content} onChangeText={setContent} multiline placeholder="Skriv melding her..." theme={theme} />
               
               <View style={{flexDirection:'row', justifyContent:'space-between', alignItems: 'center', marginTop: 10}}>
                   <TouchableOpacity onPress={onClose} style={{padding:10, marginRight: 10}}>
@@ -150,7 +149,7 @@ export const MessageModal = ({ theme, visible, loading, title, setTitle, content
   </Modal>
 );
 
-// 5. INBOX MODAL 
+// INBOX MODAL 
 export const InboxModal = ({ theme, visible, messages, department, onClose }) => (
   <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={[styles.inboxContainer, { backgroundColor: theme.background }]}>

@@ -149,7 +149,7 @@ export const MessagesSection = ({ messages, theme, currentUser, onMarkAsRead, on
                            <View style={{height: 30}} /> 
                        )}
 
-                       {/* HER ER SLETTEKNAPPEN */}
+                       
                        <TouchableOpacity onPress={() => onDelete(msg.id)} style={{marginLeft: 15, padding: 5}}>
                             <Ionicons name="trash-outline" size={20} color="#ef4444" />
                        </TouchableOpacity>

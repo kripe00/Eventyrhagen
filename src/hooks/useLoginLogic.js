@@ -1,35 +1,10 @@
-import { useState } from 'react';
-import { Alert, Platform, useColorScheme } from 'react-native';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { collection, doc, getDocs, query, setDoc, where } from 'firebase/firestore';
+import { useState } from 'react';
+import { Alert, Platform } from 'react-native';
 import { auth, db } from '../config/firebaseconfig';
 import { useAuth } from '../context/Authcontext';
-
-// Farger for lys og mørk modus (kopiert fra din original)
-const Colors = {
-  light: {
-    background: '#4f46e5',
-    card: 'white',
-    text: '#1f2937',
-    subText: '#6b7280',
-    inputBg: '#f3f4f6',
-    inputBorder: '#e5e7eb',
-    inputText: '#000',
-    button: '#4f46e5',
-    buttonText: 'white'
-  },
-  dark: {
-    background: '#1e1b4b', 
-    card: '#1f2937',       
-    text: '#f3f4f6',      
-    subText: '#9ca3af',    
-    inputBg: '#374151',    
-    inputBorder: '#4b5563',
-    inputText: '#fff',     
-    button: '#6366f1',     
-    buttonText: 'white'
-  }
-};
+import { useTheme } from '../context/ThemeContext';
 
 export const useLoginLogic = () => {
     const [email, setEmail] = useState('');
@@ -38,10 +13,11 @@ export const useLoginLogic = () => {
     const [isLoginMode, setIsLoginMode] = useState(true);
 
     const { login } = useAuth();
-
-    // Hent system tema
-    const systemTheme = useColorScheme(); 
-    const theme = Colors[systemTheme] || Colors.light;
+    const { theme: globalTheme, mode } = useTheme();
+    const theme = {
+      ...globalTheme,
+      background: mode === 'dark' ? '#1e1b4b' : '#4f46e5'
+    };
 
     const handleAuthAction = async () => {
         const cleanEmail = email.trim().toLowerCase();

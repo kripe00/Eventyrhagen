@@ -53,15 +53,14 @@ export default function SplashScreen({ onAnimationFinish }) {
   const theme = Colors[scheme] || Colors.light;
 
   const snakeSequence = [
-    { id: 'p34a6efe0', fill: theme.snakeBody, delay: 0 },     // Bottom left
-    { id: 'p2c5ad480', fill: theme.snakeBody, delay: 0.15 },  // Bottom middle
-    { id: 'p3d5d0800', fill: theme.snakeBody, delay: 0.3 },   // Bottom right
-    { id: 'p105f9900', fill: theme.snakeBody, delay: 0.45 },  // Middle right
-    { id: 'p12716000', fill: theme.snakeBody, delay: 0.6 },   // Middle middle
-    { id: 'p3a797d00', fill: theme.snakeBody, delay: 0.75 },  // Middle left
-    { id: 'p125c5700', fill: theme.snakeBody, delay: 0.9 },   // Top left
-    { id: 'p1953a3c0', fill: theme.snakeBody, delay: 1.05 },  // Top middle
-    
+    { id: 'p34a6efe0', fill: theme.snakeBody, delay: 0 },     
+    { id: 'p2c5ad480', fill: theme.snakeBody, delay: 0.15 },  
+    { id: 'p3d5d0800', fill: theme.snakeBody, delay: 0.3 },  
+    { id: 'p105f9900', fill: theme.snakeBody, delay: 0.45 },  
+    { id: 'p12716000', fill: theme.snakeBody, delay: 0.6 },   
+    { id: 'p3a797d00', fill: theme.snakeBody, delay: 0.75 },  
+    { id: 'p125c5700', fill: theme.snakeBody, delay: 0.9 },  
+    { id: 'p1953a3c0', fill: theme.snakeBody, delay: 1.05 },  
     { id: 'p2ca33b80', fill: theme.snakeHead, delay: 1.2 }, 
   ];
 
@@ -77,14 +76,12 @@ export default function SplashScreen({ onAnimationFinish }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Setter statusbar til hvit tekst siden bakgrunnen er mørk */}
       <StatusBar barStyle="light-content" />
       
       <View style={styles.svgContainer}>
         <Svg width="100%" height="100%" viewBox="0 0 356 358">
           <Defs>
             <ClipPath id="clip0_1_19">
-              {/* Dette rektangelet er bare en maske, fargen betyr ingenting her */}
               <Rect width="355.53" height="357.18" />
             </ClipPath>
           </Defs>

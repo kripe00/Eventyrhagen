@@ -14,8 +14,6 @@ export default function ParentScreen() {
   const { theme } = useTheme(); 
   const { t } = useLanguage();
   const [showSettings, setShowSettings] = useState(false);
-
-  // 1. Hent deleteMessage herifra
   const {
     children, messages, loading, logout, user,
     msgModalVisible, setMsgModalVisible,
@@ -65,7 +63,6 @@ export default function ParentScreen() {
             contentContainerStyle={{padding: 20}}
             ListHeaderComponent={
                 <>
-                    {/* 2. Send onDelete prop videre her */}
                     <MessagesSection 
                         messages={messages} 
                         theme={theme} 
